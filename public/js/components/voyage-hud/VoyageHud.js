@@ -291,8 +291,20 @@ export class VoyageHud extends HTMLElement {
     );
     this.#flag('.instruments', 'data-trimmed', trim > 0.8);
     this.#flag('.instruments', 'data-irons', irons);
+    // What to do about it, in plain words. Under engine the sails do not matter.
+    let advice = '';
+    if (irons) advice = 'In irons: bear away or start the engine';
+    else if (!engine && trim <= 0.8) {
+      advice =
+        sheet < best
+          ? 'Sails too tight: let them out (up arrow)'
+          : 'Sails too loose: haul them in (down arrow)';
+    }
     const warning = this.querySelector('[data-irons-note]');
-    if (warning instanceof HTMLElement && warning.hidden === irons) warning.hidden = !irons;
+    if (warning instanceof HTMLElement) {
+      if (advice && warning.textContent !== advice) warning.textContent = advice;
+      if (warning.hidden === (advice !== '')) warning.hidden = advice === '';
+    }
 
     // Speed, and what drives the boat.
     const knots = Math.max(0, speed).toFixed(1);
@@ -317,7 +329,7 @@ export class VoyageHud extends HTMLElement {
         `Heading ${bearing} degrees, ${long}.`,
         `Wind from the ${windLong}, ${blows}, ${side}.`,
         `${knots} knots, ${power}.`,
-        irons ? 'In irons: bear away or start the engine.' : `Trim ${word}.`,
+        irons ? `${advice}.` : `Trim ${word}.${advice ? ` ${advice}.` : ''}`,
         `Hull ${hull} percent${low ? ', low' : ''}.`,
       ].join(' '),
     );

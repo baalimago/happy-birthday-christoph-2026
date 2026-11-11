@@ -181,10 +181,25 @@ test('shows the wind, the boom to leeward and the mark to trim to', async ({ pag
   await expect(hud.locator('[data-trim]')).toHaveText('poor');
 });
 
+test('says in plain words which way to trim, and nothing once the sails are set', async ({
+  page,
+}) => {
+  const hud = await openHud(page);
+  const advice = hud.locator('[data-irons-note]');
+  await report(page, { sheet: 0.2, best: 0.55, trim: 0.4 });
+  await expect(advice).toHaveText('Sails too tight: let them out (up arrow)');
+  await report(page, { sheet: 0.9, best: 0.55, trim: 0.4 });
+  await expect(advice).toHaveText('Sails too loose: haul them in (down arrow)');
+  await report(page, { sheet: 0.55, best: 0.55, trim: 1 });
+  await expect(advice).toBeHidden();
+  await report(page, { sheet: 0.2, best: 0.55, trim: 0.4, engine: true });
+  await expect(advice).toBeHidden();
+});
+
 test('warns when the boat lies in irons, unless the engine runs', async ({ page }) => {
   const hud = await openHud(page);
   const irons = hud.locator('[data-irons-note]');
-  await report(page);
+  await report(page, { trim: 0.95 });
   await expect(irons).toBeHidden();
 
   await report(page, { relative: 0.3, trim: 0.05, speed: 0.2 });
@@ -245,7 +260,8 @@ test('reads the instruments out as one sentence, no more than once a second', as
   await report(page);
   await expect(readout).toHaveText(
     'Heading 69 degrees, east-north-east. Wind from the west-south-west, fresh, ' +
-      '80 degrees to port. 5.3 knots, under sail. Trim fair. Hull 100 percent.',
+      '80 degrees to port. 5.3 knots, under sail. Trim fair. ' +
+      'Sails too tight: let them out (up arrow). Hull 100 percent.',
   );
 
   // A burst of reports changes the sentence once, to the last of them.
