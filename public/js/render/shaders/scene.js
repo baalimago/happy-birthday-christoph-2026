@@ -77,7 +77,7 @@ float sea(vec2 w){
   h += 0.045*sin(dot(d, uWind.zw)*1.9 + uWave.y);
   h += 0.05*crest(dot(d, uRun[1])*1.31 + uPhase[1]);
   h += 0.02*sin(dot(d, uRun[2])*3.4 + uPhase[2]);
-  return h*high + (0.07 + 0.08*uSea)*sin(dot(d, uRun[0])*0.21 + uPhase[0]) + 0.03*noise(w*2.5 + uT*0.5);
+  return h*high + (0.07 + 0.08*uSea)*sin(dot(d, uRun[0])*0.21 + uPhase[0]) + 0.03*noise(w*2.5 + uT*0.15);
 }
 // A point in the wind's own frame, which drifts downwind with the weather: x down the wind,
 // y across it. For patterns that lie along the wind (gusts, streaks of foam).
@@ -566,10 +566,11 @@ vec2 rippleSlope(vec2 w, float t){
   // chop: the slope of a patch of noise that drifts downwind
   float fade = 1.0/(1.0 + tt*0.003);
   if (fade > 0.03) {
-    vec2 u = leeAt(w)*4.3 - vec2(uT*1.2, 0.0);
+    // (fixed to the water and creeping: tied to the wind's frame it raced past the boat)
+    vec2 u = w*4.3 + vec2(uT*0.22, uT*0.09);
     float n0 = noise(u);
     vec2 c = vec2(noise(u + vec2(0.4, 0.0)) - n0, noise(u + vec2(0.0, 0.4)) - n0);
-    g += 0.30*fade*(c.x*uWind.xy + c.y*vec2(-uWind.y, uWind.x));
+    g += 0.30*fade*c;
   }
   // glassy in a lull, ruffled in a gust
   return g*clamp(0.1 + 0.75*uWindSpeed + 0.4*uSea, 0.0, 1.3)*(0.75 + 0.6*gustAt(w));
@@ -627,7 +628,7 @@ vec2 wakeFoam(vec2 w){
   float tail = uRocket > 0.5 ? 4.0 + uSpeed*0.9 : 0.0;
   if (way < 0.05 || abs(b.x) > 5.0 + fast + 0.06*tail || b.y > 2.5 || b.y < -6.0 - fast*3.0 - tail)
     return vec2(0.0);
-  float n1 = noise(w*4.7 + uT*0.6), n2 = noise(w*11.3 - uT*0.9);
+  float n1 = noise(w*4.7 + uT*0.2), n2 = noise(w*11.3 - uT*0.3);
   float s = -b.y - 1.0;                               // astern of the stern
   float len = 3.0 + fast*2.4;
   float foam = 0.0, slick = 0.0;

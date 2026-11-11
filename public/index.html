@@ -110,11 +110,16 @@
 <a class="skip-link" href="#main">Skip to the logbook</a>
 <main id="main" tabindex="-1">
 <voyage-sea>
-  <p class="loading" role="status">
-    <span data-step="chart">Charting the waters…</span>
-    <span data-step="rig">Rigging the boat… the first time can take a minute, and the page may not respond until it is done.</span>
-    <span class="bar" aria-hidden="true"></span>
-  </p>
+  <div class="loading">
+    <div class="loading-card">
+      <p class="loading-title">Happy Birthday from team Wasmer!</p>
+      <p role="status">
+        <span data-step="chart">Charting the waters…</span>
+        <span data-step="rig">Rigging the boat… the first time can take a minute, and the page may not respond until it is done.</span>
+      </p>
+      <span class="bar" aria-hidden="true"></span>
+    </div>
+  </div>
   <voyage-log>
     <p class="visually-hidden" role="status" data-status></p>
     <section class="card intro" data-card="intro">

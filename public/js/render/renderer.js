@@ -97,19 +97,19 @@ const CROSS_SEA = 0.5;
  * @type {readonly { number: number, rate: number, off?: number, to?: number }[]}
  */
 const TRAINS = [
-  { number: 0.85, rate: 1.1, off: 0 },
-  { number: 1.9, rate: 1.7, off: CROSS_SEA },
+  { number: 0.85, rate: 0.7, off: 0 },
+  { number: 1.9, rate: 1.0, off: CROSS_SEA },
   { number: 0.3, rate: 0.12, off: Math.PI / 2 },
   { number: 0.21, rate: 0.42, to: 2.5 },
-  { number: 1.31, rate: 1.35, off: -0.38 },
-  { number: 3.4, rate: 2.4, off: 1.15 },
-  { number: 2.7, rate: 2.6, off: 0.12 },
-  { number: 4.6, rate: 3.4, off: -0.5 },
-  { number: 7.9, rate: 4.5, off: 0.61 },
-  { number: 13.1, rate: 5.8, off: -0.3 },
+  { number: 1.31, rate: 0.8, off: -0.38 },
+  { number: 3.4, rate: 1.1, off: 1.15 },
+  { number: 2.7, rate: 0.9, off: 0.12 },
+  { number: 4.6, rate: 1.1, off: -0.5 },
+  { number: 7.9, rate: 1.3, off: 0.61 },
+  { number: 13.1, rate: 1.5, off: -0.3 },
 ];
 /** The weather drifts downwind this fast, in units a second, at a wind strength of one. */
-const DRIFT = 6;
+const DRIFT = 1.2; // slow: at 6 the foam streaks raced over the water and looked like a fault
 /** The wind's frame wraps round here, to keep its numbers small enough for the GPU. */
 const LEE_WRAP = 8192;
 

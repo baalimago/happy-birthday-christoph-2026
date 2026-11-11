@@ -19,28 +19,48 @@
       outline: none;
     }
 
-    /* Shown from the moment the element wakes until the first frame is on the canvas. */
+    /* Shown from the moment the element wakes until the first frame is on the canvas: a backdrop
+       over the whole page (the logbook underneath is not for looking at while the sea loads) with
+       the greeting and the loading bar on a card. */
     & > .loading {
       display: none;
     }
 
     &[loading] > .loading {
       position: fixed;
-      inset-inline: 0;
-      inset-block-end: 12vh;
+      inset: 0;
       z-index: 2147483600; /* over everything, the birthday paper included */
       display: grid;
-      gap: 0.5rem;
-      inline-size: min(20rem, 80vw);
-      margin-inline: auto;
-      padding: 0.75rem 1rem;
-      border: 1px solid var(--card-fg);
-      border-radius: 2px;
+      place-items: center;
+      padding: 1rem;
+      background: var(--page-bg);
+    }
+
+    & .loading-card {
+      display: grid;
+      gap: 0.75rem;
+      inline-size: min(26rem, 100%);
+      padding: 1.5rem 1.5rem 1.25rem;
+      border: var(--card-border) solid var(--card-line);
+      border-radius: var(--card-radius);
       background: var(--card-bg);
+      box-shadow: var(--card-shadow);
       color: var(--card-fg);
       font-family: var(--font-text);
-      font-style: italic;
       text-align: center;
+
+      & p {
+        margin: 0;
+        font-style: italic;
+      }
+
+      & .loading-title {
+        font-family: var(--font-display);
+        font-size: 1.75rem;
+        font-style: normal;
+        line-height: 1.15;
+        text-wrap: balance;
+      }
     }
 
     &[loading='chart'] [data-step='rig'],
