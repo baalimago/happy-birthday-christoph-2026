@@ -284,4 +284,30 @@
       letter-spacing: 0.08em;
     }
   }
+
+  /* The sailing orders, step by step. */
+  voyage-log {
+    & .how {
+      display: grid;
+      gap: 0.35rem;
+      margin: 0.75rem 0;
+      padding-inline-start: 1.4rem;
+      list-style: decimal;
+    }
+
+    & .how li::marker {
+      color: var(--card-accent);
+      font-weight: 700;
+    }
+
+    & kbd {
+      display: inline-block;
+      min-inline-size: 1.5em;
+      padding: 0 0.3em;
+      border: 1px solid var(--card-line);
+      border-radius: 0.2rem;
+      font: 0.85em / 1.4 var(--font-text);
+      text-align: center;
+    }
+  }
 }

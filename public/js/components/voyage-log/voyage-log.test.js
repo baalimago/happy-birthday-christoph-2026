@@ -177,6 +177,21 @@ test('the finale greets a captain who comes back with every port found', async (
   await expect(openCards(page)).toHaveAttribute('data-card', 'finale');
 });
 
+test('Enter leads from the greeting to the orders, and a sailing key puts to sea', async ({
+  page,
+}) => {
+  await board(page);
+  await expect(openCards(page)).toHaveAttribute('data-card', 'splash');
+  // A sailing key does not skip the greeting.
+  await page.keyboard.press('ArrowUp');
+  await expect(openCards(page)).toHaveAttribute('data-card', 'splash');
+  await page.keyboard.press('Enter');
+  await expect(openCards(page)).toHaveAttribute('data-card', 'intro');
+  await page.keyboard.press('ArrowLeft');
+  await expect(openCards(page)).toHaveCount(0);
+  expect(await voyageState(page)).toMatchObject({ sailed: true });
+});
+
 test('"Sail it again" starts a new voyage at the sailing orders', async ({ page }) => {
   await board(page, { sailed: true, found: PORTS });
   await page.getByRole('button', { name: 'Sail it again' }).click();

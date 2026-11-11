@@ -38,7 +38,9 @@ export class VoyageLog extends HTMLElement {
     document.addEventListener(
       'keydown',
       (event) => {
-        if (event.key === 'Escape' && this.#atSea) this.#close();
+        if (!this.#atSea) return;
+        if (event.key === 'Escape') this.#close();
+        else this.#startOn(event);
       },
       { signal },
     );
@@ -73,6 +75,25 @@ export class VoyageLog extends HTMLElement {
     this.#openCard()?.removeAttribute('data-open');
     this.#announce('');
     passage.read(false);
+  }
+
+  /**
+   * The greeting and the sailing orders also give way to Enter, and the orders to any sailing key:
+   * a captain who reaches for the helm has read enough.
+   * @param {KeyboardEvent} event
+   */
+  #startOn(event) {
+    const card = this.#openCard()?.dataset.card;
+    if (card !== 'splash' && card !== 'intro') return;
+    if (event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
+    // Enter on a focused button is that button's own business.
+    const onButton = event.target instanceof Element && event.target.closest('button, a') !== null;
+    const enter = event.key === 'Enter' && !onButton;
+    const helm = /^(Arrow(Left|Right|Up|Down)|[adwse])$/i.test(event.key);
+    if (enter || (helm && card === 'intro')) {
+      event.preventDefault();
+      this.#close();
+    }
   }
 
   /** @param {Event} event */

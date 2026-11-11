@@ -148,6 +148,12 @@
     color: var(--hud-bg);
   }
 
+  /* "Engine" is the longest word on the helm. */
+  .helm [data-helm='engine'] span {
+    font-size: 0.5625rem;
+    letter-spacing: 0;
+  }
+
   .helm svg {
     flex: none;
     inline-size: 1.25rem;
