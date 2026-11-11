@@ -5,34 +5,91 @@ import { isDone, unlockedViews } from '#game/objectives.js';
 /** How long a notice stays up after its cause has gone, in milliseconds. */
 const NOTICE_LINGER = 4000;
 
-/** Within this many radians of the bow the target is "dead ahead"; of the stern, "astern". */
-const AHEAD = Math.PI / 12;
-const ASTERN = (Math.PI * 5) / 6;
+/** The spoken read-out of the instruments changes no more often than this, in milliseconds. */
+const READOUT_EVERY = 1000;
+
+/** The boat cannot sail closer to the wind than this, in radians (about 40 degrees). */
+const NO_GO = (40 * Math.PI) / 180;
+
+/** Below this share the hull is in danger. */
+const HULL_LOW = 0.3;
+
+/** The boom swings between these angles off the centreline as the sheet runs out, in degrees. */
+const BOOM_IN = 6;
+const BOOM_OUT = 84;
+
+const POINTS = [
+  ['N', 'north'],
+  ['NNE', 'north-north-east'],
+  ['NE', 'north-east'],
+  ['ENE', 'east-north-east'],
+  ['E', 'east'],
+  ['ESE', 'east-south-east'],
+  ['SE', 'south-east'],
+  ['SSE', 'south-south-east'],
+  ['S', 'south'],
+  ['SSW', 'south-south-west'],
+  ['SW', 'south-west'],
+  ['WSW', 'west-south-west'],
+  ['W', 'west'],
+  ['WNW', 'west-north-west'],
+  ['NW', 'north-west'],
+  ['NNW', 'north-north-west'],
+];
+
+/** What each notice says. Luffing is left to the trim read-out. */
+const NOTICES = {
+  '': '',
+  luffing: '',
+  aground: 'Aground! The hull takes damage. Back off and steer round.',
+  edge: 'Here be dragons. The wind turns you back.',
+  wrecked: 'Holed and sinking. Towed back to the last port for repairs.',
+  repaired: 'Hull repaired in port.',
+};
 
 /**
- * @param {number} angle radians, any range
- * @returns {number} the same bearing between -PI and PI
+ * @param {number} radians a compass bearing, any range
+ * @returns {number} whole degrees, 0 to 359
  */
-function wrap(angle) {
-  return Math.atan2(Math.sin(angle), Math.cos(angle));
+function degrees(radians) {
+  const whole = Math.round((radians * 180) / Math.PI) % 360;
+  return whole < 0 ? whole + 360 : whole;
 }
 
 /**
- * @param {import('#stores/passage.js').Target | null} target
- * @returns {string} for example "Unknown port, 140 m, to starboard"
+ * @param {number} radians a compass bearing, any range
+ * @returns {string[]} the nearest of the sixteen points, short and spelled out
  */
-function describe(target) {
-  if (!target) return 'Every port found';
-  const angle = wrap(target.angle);
-  const off = Math.abs(angle);
-  let side = angle > 0 ? 'to starboard' : 'to port';
-  if (off <= AHEAD) side = 'dead ahead';
-  else if (off >= ASTERN) side = 'astern';
-  return `Unknown port, ${Math.round(target.distance) * 10} m, ${side}`;
+function point(radians) {
+  return POINTS[Math.round(degrees(radians) / 22.5) % 16];
+}
+
+/** @param {number} speed 0 calm .. 1 fresh breeze */
+function strength(speed) {
+  if (speed < 0.7) return 'light';
+  return speed < 1 ? 'moderate' : 'fresh';
+}
+
+/** @param {number} trim 0 flapping .. 1 perfect */
+function trimWord(trim) {
+  if (trim < 0.25) return 'luffing';
+  if (trim < 0.55) return 'poor';
+  return trim <= 0.8 ? 'fair' : 'good';
 }
 
 /**
- * The HUD: captain's orders, compass, view switcher and notices.
+ * The equivalent of an angle that lies nearest to the last one shown, so a dial that turns
+ * through north takes the short way round.
+ * @param {number} last degrees, any range
+ * @param {number} next degrees, any range
+ */
+function nearest(last, next) {
+  return last + ((((next - last) % 360) + 540) % 360) - 180;
+}
+
+/**
+ * The HUD: captain's orders, the instruments (compass, wind and sail, speed, trim, hull),
+ * the view switcher and notices.
  * Fills and toggles the markup it wraps; reads and writes only the two stores.
  */
 export class VoyageHud extends HTMLElement {
@@ -42,8 +99,24 @@ export class VoyageHud extends HTMLElement {
   /** @type {ReturnType<typeof setTimeout> | undefined} */
   #lingering;
 
-  /** The needle's last rotation as written, to skip style writes that change nothing. */
-  #rotate = '';
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
+  #reading;
+
+  /** When the spoken read-out last changed, in milliseconds. */
+  #readAt = -Infinity;
+
+  /** The read-out waiting for its turn. */
+  #readout = '';
+
+  /** What was last written to each target, to skip writes that change nothing. */
+  #written = new Map();
+
+  /** Dial angles as last shown, in degrees and unwrapped. */
+  #card = 0;
+  #arrow = 0;
+
+  /** The side the boom lies on: 1 to port (wind over the starboard side), -1 to starboard. */
+  #lee = 1;
 
   connectedCallback() {
     this.#connected = new AbortController();
@@ -51,7 +124,11 @@ export class VoyageHud extends HTMLElement {
     this.addEventListener('click', (event) => this.#choose(event), { signal });
     voyage.addEventListener('change', () => this.#renderVoyage(), { signal });
     passage.addEventListener('change', () => this.#renderPassage(), { signal });
-    signal.addEventListener('abort', () => this.#stopLingering());
+    signal.addEventListener('abort', () => {
+      this.#stopLingering();
+      clearTimeout(this.#reading);
+      this.#reading = undefined;
+    });
     this.#addDoneMarks();
     this.#renderVoyage();
     this.#renderPassage();
@@ -96,6 +173,49 @@ export class VoyageHud extends HTMLElement {
     if (button.dataset.view) voyage.look(button.dataset.view);
   }
 
+  /**
+   * Sets the text of the first match, only when it differs from what was last written.
+   * @param {string} selector
+   * @param {string} text
+   */
+  #say(selector, text) {
+    if (this.#written.get(selector) === text) return;
+    const target = this.querySelector(selector);
+    if (!target) return;
+    this.#written.set(selector, text);
+    if (target.textContent !== text) target.textContent = text;
+  }
+
+  /**
+   * Sets one style property of the first match, only when it differs from what was last written.
+   * @param {string} selector
+   * @param {'rotate' | 'inlineSize'} property
+   * @param {string} value
+   */
+  #set(selector, property, value) {
+    const key = `${selector} ${property}`;
+    if (this.#written.get(key) === value) return;
+    const target = this.querySelector(selector);
+    if (!(target instanceof HTMLElement || target instanceof SVGElement)) return;
+    this.#written.set(key, value);
+    target.style[property] = value;
+  }
+
+  /**
+   * Sets or removes a flag attribute on the first match.
+   * @param {string} selector
+   * @param {string} name
+   * @param {boolean} on
+   */
+  #flag(selector, name, on) {
+    const key = `${selector} @${name}`;
+    if (this.#written.get(key) === on) return;
+    const target = this.querySelector(selector);
+    if (!target) return;
+    this.#written.set(key, on);
+    target.toggleAttribute(name, on);
+  }
+
   #renderVoyage() {
     const { found, view, sailed } = voyage.state;
     const unlocked = unlockedViews(found, this.#portViews());
@@ -120,27 +240,110 @@ export class VoyageHud extends HTMLElement {
     }
     const group = this.querySelector('.views');
     if (group instanceof HTMLElement) group.hidden = unlocked.length < 2;
+
+    this.#renderInstruments();
   }
 
   #renderPassage() {
-    const { target, near, notice } = passage.state;
+    this.#renderInstruments();
+    this.#renderNotice();
+  }
 
-    const needle = this.querySelector('.needle');
-    if (needle instanceof HTMLElement) {
-      needle.hidden = !target;
-      const rotate = `${(target ? wrap(target.angle) : 0).toFixed(2)}rad`;
-      if (rotate !== this.#rotate) needle.style.rotate = this.#rotate = rotate;
+  /** The dials and figures. Runs about ten times a second, so it writes only what changed. */
+  #renderInstruments() {
+    const { heading, speed, windFrom, windSpeed, relative, sheet, best, trim, engine } =
+      passage.state.log;
+    const hull = Math.round(Math.min(1, Math.max(0, voyage.state.hull ?? 1)) * 100);
+    const low = hull < HULL_LOW * 100;
+
+    // Compass: the card turns under a fixed lubber line.
+    const bearing = degrees(heading);
+    const [short, long] = point(heading);
+    this.#card = nearest(this.#card, (-heading * 180) / Math.PI);
+    this.#set('[data-card]', 'rotate', `${this.#card.toFixed(1)}deg`);
+    this.#say('[data-heading]', String(bearing).padStart(3, '0'));
+    this.#say('[data-point]', short);
+
+    // Wind and sail: the boat is fixed bow-up, the wind comes in over the rim.
+    const [windShort, windLong] = point(windFrom);
+    const blows = strength(windSpeed);
+    this.#arrow = nearest(this.#arrow, (relative * 180) / Math.PI);
+    this.#set('[data-wind-arrow]', 'rotate', `${this.#arrow.toFixed(1)}deg`);
+    this.#say('[data-wind]', windShort);
+    this.#say('[data-wind-strength]', blows);
+
+    // The boom lies to leeward. Dead ahead and dead astern it keeps the side it had.
+    const off = Math.abs(relative);
+    if (off > 0.1 && off < Math.PI - 0.1) this.#lee = relative > 0 ? 1 : -1;
+    const swing = (/** @type {number} */ out) =>
+      `${(this.#lee * (BOOM_IN + Math.min(1, Math.max(0, out)) * (BOOM_OUT - BOOM_IN))).toFixed(1)}deg`;
+    this.#set('[data-boom]', 'rotate', swing(sheet));
+    this.#set('[data-best]', 'rotate', swing(best));
+
+    // Trim, and the no-go zone.
+    const word = trimWord(trim);
+    const irons = off < NO_GO && !engine;
+    this.#say('[data-trim]', word);
+    this.#set('[data-trim-bar]', 'inlineSize', `${Math.round(Math.min(1, Math.max(0, trim)) * 100)}%`);
+    this.#flag('.instruments', 'data-trimmed', trim > 0.8);
+    this.#flag('.instruments', 'data-irons', irons);
+    const warning = this.querySelector('[data-irons-note]');
+    if (warning instanceof HTMLElement && warning.hidden === irons) warning.hidden = !irons;
+
+    // Speed, and what drives the boat.
+    const knots = Math.max(0, speed).toFixed(1);
+    let power = 'under sail';
+    if (engine) power = 'under engine';
+    else if (speed < 0.05) power = 'stopped';
+    this.#say('[data-speed]', knots);
+    this.#say('[data-power]', power);
+
+    // Hull: a bar, a figure, and below 30 percent a word and a mark as well as a colour.
+    this.#say('[data-hull]', String(hull));
+    this.#set('[data-hull-bar]', 'inlineSize', `${hull}%`);
+    this.#flag('.hull', 'data-low', low);
+    const alarm = this.querySelector('[data-hull-low]');
+    if (alarm instanceof HTMLElement && alarm.hidden === low) alarm.hidden = !low;
+
+    let side = 'ahead';
+    if (off > Math.PI - 0.1) side = 'astern';
+    else if (off >= 0.1) side = `${degrees(off)} degrees to ${relative > 0 ? 'starboard' : 'port'}`;
+    this.#read(
+      [
+        `Heading ${bearing} degrees, ${long}.`,
+        `Wind from the ${windLong}, ${blows}, ${side}.`,
+        `${knots} knots, ${power}.`,
+        irons ? 'In irons: bear away or start the engine.' : `Trim ${word}.`,
+        `Hull ${hull} percent${low ? ', low' : ''}.`,
+      ].join(' '),
+    );
+  }
+
+  /**
+   * The instruments as one sentence for assistive technology, changed at most once a second.
+   * @param {string} text
+   */
+  #read(text) {
+    this.#readout = text;
+    if (this.#reading !== undefined) return;
+    const wait = this.#readAt + READOUT_EVERY - performance.now();
+    if (wait <= 0) {
+      this.#readAt = performance.now();
+      this.#say('[data-readout]', text);
+    } else {
+      this.#reading = setTimeout(() => {
+        this.#reading = undefined;
+        this.#read(this.#readout);
+      }, wait);
     }
-    const compass = this.querySelector('[data-compass]');
-    const bearing = describe(target);
-    if (compass && compass.textContent !== bearing) compass.textContent = bearing;
+  }
 
+  #renderNotice() {
+    const { near, notice } = passage.state;
     const status = this.querySelector('[data-notice]');
     if (!status) return;
-    let message = '';
-    if (notice === 'aground') message = 'Aground. Back off and steer round.';
-    else if (notice === 'edge') message = 'Here be dragons. The wind turns you back.';
-    else if (near) message = `Arrived at ${this.#portName(near)}`;
+    let message = NOTICES[notice] ?? '';
+    if (!message && near) message = `Arrived at ${this.#portName(near)}`;
 
     if (message) {
       this.#stopLingering();

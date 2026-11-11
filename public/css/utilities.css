@@ -11,6 +11,7 @@
   /* Ashore (no JavaScript, no WebGL 2) there is nothing to steer and nothing to track. This
      has to outrank the element sheets, so it lives in the last layer. */
   voyage-sea:not([live]) voyage-hud,
+  voyage-sea:not([live]) voyage-chart,
   voyage-sea:not([live]) .helm {
     display: none;
   }

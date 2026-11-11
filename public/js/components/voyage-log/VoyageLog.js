@@ -20,6 +20,9 @@ export class VoyageLog extends HTMLElement {
   /** The finale has had its turn. It gets another after a new voyage. */
   #finaleSeen = false;
 
+  /** The boat was a wreck when the passage last changed. */
+  #wrecked = false;
+
   connectedCallback() {
     this.#connected = new AbortController();
     const { signal } = this.#connected;
@@ -84,8 +87,14 @@ export class VoyageLog extends HTMLElement {
   }
 
   #onPassage() {
-    const { near } = passage.state;
-    if (!this.#atSea || near === this.#near) return;
+    const { near, notice } = passage.state;
+    const wrecked = notice === 'wrecked';
+    const struck = wrecked && !this.#wrecked;
+    this.#wrecked = wrecked;
+    if (!this.#atSea) return;
+    // A wreck is no time to read: whatever card is open goes away, and the notice has the floor.
+    if (struck) this.#close();
+    if (near === this.#near) return;
     this.#near = near;
     if (near) this.#open(near);
     else if (this.#openCard()?.hasAttribute('data-port')) this.#close();

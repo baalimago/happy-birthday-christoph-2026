@@ -62,24 +62,41 @@
     background: var(--sea);
   }
 
+  /* The helm. On a phone held upright it is split for two thumbs: steer with the outer buttons,
+     the sheet stacked beside the starboard one (out above in, as on the arrow keys), the engine
+     beside the port one. The strip itself lets taps through to whatever lies between. */
   .helm {
     position: fixed;
     z-index: 2;
-    inset-block-end: max(1rem, env(safe-area-inset-bottom));
-    inset-inline-start: 50%;
-    display: flex;
-    gap: 0.75rem;
-    translate: -50% 0;
+    inset-inline: max(0.75rem, env(safe-area-inset-left)) max(0.75rem, env(safe-area-inset-right));
+    inset-block-end: max(0.75rem, env(safe-area-inset-bottom));
+    display: grid;
+    grid-template:
+      '. . . out .' var(--helm-sheet)
+      'left engine . in right' var(--helm-sheet)
+      / auto auto 1fr auto auto;
+    gap: 0.5rem;
+    align-items: end;
+    pointer-events: none;
   }
 
   .helm button {
-    inline-size: var(--helm-button);
-    block-size: var(--helm-button);
+    flex-direction: column;
+    gap: 0.0625rem;
+    inline-size: var(--helm-small);
+    block-size: var(--helm-sheet);
     padding: 0;
     border: 2px solid var(--hud-fg);
-    border-radius: 50%;
+    border-radius: 0.75rem;
     background: var(--hud-bg);
     color: var(--hud-fg);
+    font-family: var(--font-text);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    pointer-events: auto;
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
@@ -87,26 +104,105 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  .helm [data-helm='left'],
+  .helm [data-helm='right'] {
+    inline-size: var(--helm-button);
+    block-size: var(--helm-button);
+    border-radius: 50%;
+  }
+
+  .helm [data-helm='left'] {
+    grid-area: left;
+    grid-row: 1 / -1;
+  }
+
+  .helm [data-helm='right'] {
+    grid-area: right;
+    grid-row: 1 / -1;
+  }
+
+  .helm [data-helm='in'] {
+    grid-area: in;
+  }
+
+  .helm [data-helm='out'] {
+    grid-area: out;
+  }
+
+  .helm [data-helm='engine'] {
+    grid-area: engine;
+    border-style: dashed;
+  }
+
   .helm button:active {
     background: var(--hud-accent);
     color: var(--hud-bg);
   }
 
+  /* The engine runs: the button fills, its border closes, the word changes. */
+  .helm [data-helm='engine'][aria-pressed='true'] {
+    border-style: solid;
+    border-color: var(--hud-accent);
+    background: var(--hud-accent);
+    box-shadow: inset 0 0 0 2px var(--hud-bg);
+    color: var(--hud-bg);
+  }
+
+  .helm [aria-pressed='false'] .on,
+  .helm [aria-pressed='true'] .off {
+    display: none;
+  }
+
   .helm svg {
+    flex: none;
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    pointer-events: none;
+  }
+
+  .helm [data-helm='left'] svg,
+  .helm [data-helm='right'] svg {
     inline-size: 1.75rem;
     block-size: 1.75rem;
-    pointer-events: none;
   }
 
   html:has(voyage-sea[live]) body > footer {
     display: none;
   }
 
-  /* Room at the side: a wide screen, or a phone on its side. */
-  @media (width >= 900px), (width >= 600px) and (height < 30rem) {
+  /* A phone on its side: one row, so the card above it keeps its height. */
+  @media (width >= 600px) and (height < 30rem) {
+    :root {
+      --helm-reserve: 5.25rem;
+    }
+
+    .helm {
+      grid-template: 'left engine . in out right' var(--helm-button) / auto auto 1fr auto auto auto;
+      align-items: center;
+    }
+  }
+
+  /* A wide screen: one cluster in the corner, laid out like the arrow keys. */
+  @media (width >= 900px) and (height >= 30rem) {
+    :root {
+      --helm-button: 3.25rem;
+      --helm-small: 3.25rem;
+      --helm-sheet: 3.25rem;
+    }
+
     .helm {
       inset-inline: auto max(1rem, env(safe-area-inset-right));
-      translate: none;
+      inset-block-end: max(1rem, env(safe-area-inset-bottom));
+      grid-template:
+        'engine out .' var(--helm-sheet)
+        'left in right' var(--helm-sheet)
+        / auto auto auto;
+    }
+
+    .helm [data-helm='left'],
+    .helm [data-helm='right'] {
+      grid-row: 2;
+      border-radius: 0.75rem;
     }
   }
 

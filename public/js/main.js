@@ -6,4 +6,5 @@ wrapBirthday();
 
 lazyDefine('voyage-sea', () => import('#components/voyage-sea/voyage-sea.js'));
 lazyDefine('voyage-hud', () => import('#components/voyage-hud/voyage-hud.js'));
+lazyDefine('voyage-chart', () => import('#components/voyage-chart/voyage-chart.js'));
 lazyDefine('voyage-log', () => import('#components/voyage-log/voyage-log.js'));

@@ -59,12 +59,12 @@
 <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
 <link rel="manifest" href="/manifest.webmanifest">
 <title>The Philosopher's Voyage</title>
-<meta name="description" content="A small sailing game for Christoph's birthday: six ports, and at each one a thought, a glass, a cup and a plate.">
+<meta name="description" content="A sailing game for Christoph's birthday: a wide sea, a chart with nothing marked on it, and seven places to find. Each pays out a thought, a glass, a cup and a plate.">
 <meta name="robots" content="noindex">
 <link rel="canonical" href="https://philosophers-voyage.wasmer.app/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="The Philosopher's Voyage">
-<meta property="og:description" content="A small sailing game for Christoph's birthday.">
+<meta property="og:description" content="A sailing game for Christoph's birthday: a wide sea, an unmarked chart and seven places to find.">
 <meta property="og:url" content="https://philosophers-voyage.wasmer.app/">
 <meta property="og:image" content="https://philosophers-voyage.wasmer.app/assets/og/voyage.png">
 <meta property="og:image:width" content="1200">
@@ -81,13 +81,13 @@
     <section class="card intro" data-card="intro">
       <p class="eyebrow">For Captain theduke, 11 November</p>
       <h1>The Philosopher's Voyage</h1>
-      <p class="lede">Happy birthday, Christoph. Five of your projects have turned into islands, and there is a sixth you have not seen yet.</p>
-      <p>Steer with the arrow keys or the helm on screen and find the six lit ports. Each one pays out: a thought, a glass, a cup and a plate.</p>
+      <p class="lede">Happy birthday, Christoph. You lie in the harbour of your home port, and out on a wide sea there are seven places to find.</p>
+      <p>There is a chart (press M), but nobody has marked anything on it. So sail: steer with left and right, and let the sails out or haul them in with up and down until they match the marker on the wind dial. Or start the engine with E. Keep off the rocks; the hull does not forgive.</p>
       <p class="ashore">No WebGL aboard? Then this is the logbook, and it has everything the ports would have paid out.</p>
       <button type="button" data-close>Weigh anchor</button>
     </section>
     <ol class="ports">
-      <li><article class="card port" id="port-wittgenstein" data-card="wittgenstein" data-port data-x="7" data-z="16" data-view="gold">
+      <li><article class="card port" id="port-wittgenstein" data-card="wittgenstein" data-port data-view="gold">
         <p class="eyebrow">Home port, Vienna</p>
         <h2>Port Wittgenstein</h2>
         <blockquote>
@@ -102,7 +102,7 @@
         </dl>
         <button type="button" data-close>Sail on</button>
       </article></li>
-      <li><article class="card port" id="port-juniper" data-card="juniper" data-port data-x="-24" data-z="36" data-view="chart">
+      <li><article class="card port" id="port-juniper" data-card="juniper" data-port data-view="chart">
         <p class="eyebrow">After juniper, your GraphQL library for Rust, 2016</p>
         <h2>Juniper Isle</h2>
         <blockquote>
@@ -117,14 +117,13 @@
         </dl>
         <button type="button" data-close>Sail on</button>
       </article></li>
-      <li><article class="card port" id="port-quickjs" data-card="quickjs" data-port data-x="27" data-z="50">
+      <li><article class="card port" id="port-quickjs" data-card="quickjs" data-port>
         <p class="eyebrow">After quick-js, 2019</p>
         <h2>QuickJS Reef</h2>
         <blockquote>
           <p>Everything flows.</p>
           <footer>Heraclitus</footer>
         </blockquote>
-        <p class="unlock">This port unlocks the Terminal view: the sea, as seen over SSH.</p>
         <dl class="fare">
           <div><dt>Glass</dt><dd>Wiener Gemischter Satz: several grape varieties from one vineyard, picked and pressed together.</dd></div>
           <div><dt>Cup</dt><dd>Einspänner: a double espresso in a glass, under whipped cream. Do not stir.</dd></div>
@@ -132,7 +131,7 @@
         </dl>
         <button type="button" data-close>Sail on</button>
       </article></li>
-      <li><article class="card port" id="port-edge" data-card="edge" data-port data-x="-12" data-z="74">
+      <li><article class="card port" id="port-edge" data-card="edge" data-port>
         <p class="eyebrow">After Wasmer Edge, 2023</p>
         <h2>Edge Harbour</h2>
         <blockquote>
@@ -146,7 +145,7 @@
         </dl>
         <button type="button" data-close>Sail on</button>
       </article></li>
-      <li><article class="card port" id="port-dioxus" data-card="dioxus" data-port data-x="30" data-z="92" data-view="terminal">
+      <li><article class="card port" id="port-dioxus" data-card="dioxus" data-port>
         <p class="eyebrow">After dxterm and your Dioxus UI kit, 2026</p>
         <h2>Dioxus Bay</h2>
         <blockquote>
@@ -160,12 +159,27 @@
         </dl>
         <button type="button" data-close>Sail on</button>
       </article></li>
-      <li><article class="card port" id="port-strand" data-card="strand" data-port data-x="-2" data-z="120">
+      <li><article class="card port" id="port-plato" data-card="plato" data-port data-view="terminal">
+        <p class="eyebrow">A sea cave in Schattenfels</p>
+        <h2>Plato's Cave</h2>
+        <blockquote>
+          <p>How could they see anything but the shadows if they were never allowed to move their heads?</p>
+          <footer>Plato, <cite>Republic</cite>, Book VII</footer>
+        </blockquote>
+        <p class="unlock">This cave unlocks the Terminal view: the sea as shadows on a wall.</p>
+        <dl class="fare">
+          <div><dt>Glass</dt><dd>Assyrtiko from Santorini, grown on volcanic ash: lemon, salt and a little smoke.</dd></div>
+          <div><dt>Cup</dt><dd>Greek coffee, unfiltered. Let the grounds settle, and stop before you reach them.</dd></div>
+          <div><dt>Plate</dt><dd>Grilled octopus with olive oil, lemon and oregano. Eat it outside, in the light.</dd></div>
+        </dl>
+        <button type="button" data-close>Sail on</button>
+      </article></li>
+      <li><article class="card port" id="port-strand" data-card="strand" data-port>
         <p class="eyebrow">The birthday beach, 11 November</p>
         <h2 lang="de">Geburtstagsstrand</h2>
         <blockquote>
           <p lang="de">Alles Gute zum Geburtstag, Christoph!</p>
-          <footer>Everyone at Wasmer</footer>
+          <footer>Written in the sand</footer>
         </blockquote>
         <dl class="fare">
           <div><dt>Glass</dt><dd>Austrian Sekt, well chilled. Open it now.</dd></div>
@@ -178,38 +192,106 @@
     <section class="card finale" data-card="finale">
       <p class="eyebrow">Every port found</p>
       <h2 lang="de">Alles Gute zum Geburtstag, Christoph!</h2>
-      <p class="lede">Six ports, 47 crates, some 16 million downloads, one Edge. Prost, Captain.</p>
+      <p class="lede">Seven ports, 47 crates, some 16 million downloads, one Edge. Prost, Captain.</p>
       <p>In Rust, “boats” usually means someone else. Today it means you.</p>
       <button type="button" data-reset>Sail it again</button>
     </section>
   </voyage-log>
   <voyage-hud>
-    <h2>Captain's orders</h2>
-    <ol class="objectives">
-      <li data-goal="sail">Weigh anchor</li>
-      <li data-goal="port:wittgenstein">Find your home port</li>
-      <li data-goal="ports:3">Find three ports</li>
-      <li data-goal="views:4">Collect all four views</li>
-      <li data-goal="ports:6">Find every port</li>
-    </ol>
-    <p class="compass"><span class="needle" aria-hidden="true"></span> <span data-compass></span></p>
-    <div class="views" role="group" aria-label="View">
-      <button type="button" data-view="poster" aria-pressed="true">Poster</button>
-      <button type="button" data-view="terminal" hidden>Terminal</button>
-      <button type="button" data-view="gold" hidden>Gold</button>
-      <button type="button" data-view="chart" hidden>Chart</button>
+    <div class="orders">
+      <h2>Captain's orders</h2>
+      <ol class="objectives">
+        <li data-goal="sail">Weigh anchor</li>
+        <li data-goal="port:wittgenstein">Find your home port</li>
+        <li data-goal="ports:3">Find three ports</li>
+        <li data-goal="views:4">Collect all four views</li>
+        <li data-goal="ports:6">Find every port</li>
+      </ol>
+      <div class="views" role="group" aria-label="View">
+        <button type="button" data-view="poster" aria-pressed="true">Poster</button>
+        <button type="button" data-view="terminal" hidden>Terminal</button>
+        <button type="button" data-view="gold" hidden>Gold</button>
+        <button type="button" data-view="chart" hidden>Chart</button>
+      </div>
+      <p role="status" data-notice></p>
     </div>
-    <p role="status" data-notice></p>
+    <div class="instruments" role="group" aria-label="Instruments">
+      <p class="visually-hidden" data-readout></p>
+      <div class="gauges" aria-hidden="true">
+        <div class="gauge compass">
+          <svg class="dial" viewBox="-50 -50 100 100" focusable="false">
+            <circle class="face" r="47"/>
+            <g data-card>
+              <circle class="ticks" r="41"/>
+              <circle class="ticks major" r="40"/>
+              <path class="north" d="M0-27 5 0H-5Z"/>
+              <path class="south" d="M0 27 5 0H-5Z"/>
+              <text y="-28.5">N</text>
+              <text x="31" y="4">E</text>
+              <text y="36.5">S</text>
+              <text x="-31" y="4">W</text>
+            </g>
+            <path class="lubber" d="M0-36-6-49H6Z"/>
+          </svg>
+          <p><span data-heading>000</span>° <span data-point>N</span></p>
+        </div>
+        <div class="gauge wind">
+          <svg class="dial" viewBox="-50 -50 100 100" focusable="false">
+            <circle class="face" r="47"/>
+            <g data-wind-arrow>
+              <path class="no-go" d="M0 0-28.3-33.7A44 44 0 0 1 28.3-33.7Z"/>
+              <path class="arrow" d="M0-29-7-40H-2.5V-49H2.5V-40H7Z"/>
+            </g>
+            <path class="boat" d="M0-27C8-17 10.5-2 8 21Q0 24-8 21C-10.5-2-8-17 0-27Z"/>
+            <g transform="translate(0 -9)">
+              <path class="sweep" d="M-27.9 2.9A28 28 0 0 0 27.9 2.9"/>
+              <g data-best>
+                <path class="ghost" d="M0 0V24"/>
+                <circle class="mark" cy="28" r="4.5"/>
+              </g>
+              <g data-boom>
+                <path class="boom" d="M0 0V28"/>
+              </g>
+              <circle class="mast" r="2.4"/>
+            </g>
+          </svg>
+          <p><span class="roomy">Wind </span><span data-wind>N</span><span class="roomy">, <span data-wind-strength>light</span></span></p>
+        </div>
+        <div class="gauge speed">
+          <p class="figure"><span data-speed>0.0</span> <span class="unit">kn</span></p>
+          <p data-power>stopped</p>
+        </div>
+        <div class="gauge trim">
+          <p><span class="label">Trim</span> <span data-trim>luffing</span></p>
+          <span class="bar"><span data-trim-bar></span></span>
+        </div>
+        <div class="gauge hull">
+          <p><span class="label">Hull</span> <span data-hull>100</span>% <span class="low" data-hull-low hidden><svg viewBox="0 0 12 12" width="12" height="12" focusable="false"><path d="M6 1 11.5 11H.5Z"/><path class="bang" d="M6 4.6V7.6M6 9.1V9.2"/></svg> low</span></p>
+          <span class="bar"><span data-hull-bar></span></span>
+        </div>
+        <p class="irons" data-irons-note hidden>In irons: bear away or start the engine</p>
+      </div>
+    </div>
   </voyage-hud>
   <div class="helm" role="group" aria-label="Helm">
     <button type="button" data-helm="left" aria-label="Turn to port">
       <svg aria-hidden="true" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v6"/></svg>
     </button>
-    <button type="button" data-helm="up" aria-label="Sail ahead">
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4"/><path d="m5 11 7-7 7 7"/></svg>
-    </button>
     <button type="button" data-helm="right" aria-label="Turn to starboard">
       <svg aria-hidden="true" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0-5 5v6"/></svg>
+    </button>
+    <button type="button" data-helm="in" aria-label="Haul the sails in">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16"/><path d="m3 7 5 5-5 5"/><path d="m21 7-5 5 5 5"/></svg>
+      <span aria-hidden="true">In</span>
+    </button>
+    <button type="button" data-helm="out" aria-label="Let the sails out">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16"/><path d="m8 7-5 5 5 5"/><path d="m16 7 5 5-5 5"/></svg>
+      <span aria-hidden="true">Out</span>
+    </button>
+    <button type="button" data-helm="engine" aria-label="Engine" aria-pressed="false">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5"/><path d="M12 10.5C9.5 8 10 3.5 12 3.5s2.5 4.5 0 7z"/><path d="M12 10.5C9.5 8 10 3.5 12 3.5s2.5 4.5 0 7z" transform="rotate(120 12 12)"/><path d="M12 10.5C9.5 8 10 3.5 12 3.5s2.5 4.5 0 7z" transform="rotate(240 12 12)"/></svg>
+      <span class="off" aria-hidden="true">Off</span>
+      <span class="on" aria-hidden="true">On</span>
     </button>
   </div>
 </voyage-sea>

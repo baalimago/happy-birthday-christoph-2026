@@ -96,8 +96,11 @@
     --poster-teal: #0f6e7a;
 
     --target: 2.75rem;
+    /* The helm: the two steering buttons, the smaller ones, and the room the lot takes up. */
     --helm-button: 4rem;
-    --helm-reserve: 6rem;
+    --helm-small: 3.5rem;
+    --helm-sheet: 2.75rem;
+    --helm-reserve: 7.25rem;
   }
 
   voyage-sea[data-view='terminal'] {

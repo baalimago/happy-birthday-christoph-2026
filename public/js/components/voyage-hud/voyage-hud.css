@@ -1,17 +1,31 @@
 @layer components {
+  /* A strip along the top: orders on the left, instruments on the right. The strip itself lets
+     the pointer through to the sea. */
   voyage-hud {
     position: fixed;
     inset-block-start: max(0.75rem, env(safe-area-inset-top));
-    inset-inline-start: max(0.75rem, env(safe-area-inset-left));
-    display: block;
-    inline-size: max-content;
-    max-inline-size: min(19rem, 100vw - 1.5rem);
-    padding: 0.6rem 0.8rem 0.7rem;
-    border: 1px solid var(--hud-line);
-    border-radius: 0.5rem;
-    background: var(--hud-bg);
+    inset-inline: max(0.75rem, env(safe-area-inset-left)) max(0.75rem, env(safe-area-inset-right));
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
     color: var(--hud-fg);
     font: 0.875rem / 1.35 var(--font-text);
+    pointer-events: none;
+
+    & .orders,
+    & .instruments {
+      border: 1px solid var(--hud-line);
+      border-radius: 0.5rem;
+      background: var(--hud-bg);
+      pointer-events: auto;
+    }
+
+    & .orders {
+      inline-size: max-content;
+      max-inline-size: 19rem;
+      padding: 0.6rem 0.8rem 0.7rem;
+    }
 
     & h2 {
       font: 0.8125rem / 1.2 var(--font-display);
@@ -68,25 +82,6 @@
       white-space: nowrap;
     }
 
-    & .compass {
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      margin-block-start: 0.5rem;
-      padding-block-start: 0.5rem;
-      border-block-start: 1px solid var(--hud-line);
-      font-variant-numeric: tabular-nums;
-    }
-
-    /* An arrowhead that points up at 0rad; the element turns it toward the port. */
-    & .needle {
-      flex: none;
-      inline-size: 1rem;
-      block-size: 1rem;
-      background: var(--hud-accent);
-      clip-path: polygon(50% 0, 80% 100%, 50% 80%, 20% 100%);
-    }
-
     & .views {
       display: flex;
       flex-wrap: wrap;
@@ -127,19 +122,303 @@
       margin: 0;
     }
 
+    /* The instruments: two dials, then speed, trim and hull, one under the other. */
+    & .instruments {
+      position: relative;
+      flex: none;
+      inline-size: 16.5rem;
+      padding: 0.6rem 0.8rem 0.7rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    & .gauges {
+      display: grid;
+      grid-template:
+        'compass wind' auto
+        'speed speed' auto
+        'trim trim' auto
+        'irons irons' auto
+        'hull hull' auto / 1fr 1fr;
+      gap: 0.5rem 0.75rem;
+    }
+
+    & .gauge p {
+      margin: 0;
+    }
+
+    & .compass {
+      grid-area: compass;
+    }
+
+    & .wind {
+      grid-area: wind;
+    }
+
+    & .compass,
+    & .wind {
+      display: grid;
+      justify-items: center;
+      gap: 0.25rem;
+      text-align: center;
+    }
+
+    & .dial {
+      display: block;
+      inline-size: 6rem;
+      block-size: 6rem;
+      overflow: visible;
+    }
+
+    & .face {
+      fill: none;
+      stroke: var(--hud-line);
+      stroke-width: 1.5;
+    }
+
+    /* Thirty-six ticks from one dashed circle; every forty-five degrees a longer one. */
+    & .ticks {
+      fill: none;
+      stroke: var(--hud-fg);
+      stroke-width: 4;
+      stroke-dasharray: 0.9 6.2558;
+      stroke-dashoffset: 0.45;
+      opacity: 0.7;
+    }
+
+    & .ticks.major {
+      stroke-width: 7;
+      stroke-dasharray: 1.6 29.8159;
+      stroke-dashoffset: 0.8;
+      opacity: 1;
+    }
+
+    & .dial text {
+      fill: var(--hud-fg);
+      font: 700 11px / 1 var(--font-text);
+      text-anchor: middle;
+    }
+
+    & .dial text:first-of-type,
+    & .north,
+    & .lubber,
+    & .arrow {
+      fill: var(--hud-accent);
+    }
+
+    & .south {
+      fill: none;
+      stroke: var(--hud-fg);
+      stroke-width: 1.2;
+      stroke-linejoin: round;
+    }
+
+    & .lubber {
+      stroke: var(--hud-bg);
+      stroke-width: 1.5;
+      stroke-linejoin: round;
+    }
+
+    /* Where the boat cannot point: a wedge that turns with the wind. */
+    & .no-go {
+      fill: var(--hud-fg);
+      opacity: 0.14;
+    }
+
+    & .boat {
+      fill: var(--hud-bg);
+      stroke: var(--hud-fg);
+      stroke-width: 2;
+      stroke-linejoin: round;
+    }
+
+    & .sweep {
+      fill: none;
+      stroke: var(--hud-line);
+      stroke-width: 1;
+      stroke-dasharray: 1.5 2.5;
+    }
+
+    & .boom {
+      fill: none;
+      stroke: var(--hud-fg);
+      stroke-width: 3.6;
+      stroke-linecap: round;
+    }
+
+    & .ghost {
+      fill: none;
+      stroke: var(--hud-accent);
+      stroke-width: 1.4;
+      stroke-dasharray: 2.5 2.5;
+    }
+
+    /* The mark to bring the boom to: a ring, filled once the sail is trimmed well. */
+    & .mark {
+      fill: var(--hud-bg);
+      stroke: var(--hud-accent);
+      stroke-width: 1.8;
+    }
+
+    & .instruments[data-trimmed] .mark {
+      fill: var(--hud-accent);
+    }
+
+    & .mast {
+      fill: var(--hud-fg);
+    }
+
+    & .speed {
+      grid-area: speed;
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      padding-block-start: 0.45rem;
+      border-block-start: 1px solid var(--hud-line);
+    }
+
+    & .figure {
+      font: 1.625rem / 1 var(--font-display);
+      letter-spacing: 0.02em;
+    }
+
+    & .unit {
+      font: 0.875rem / 1 var(--font-text);
+      letter-spacing: 0;
+    }
+
+    & .trim {
+      grid-area: trim;
+    }
+
+    & .hull {
+      grid-area: hull;
+    }
+
+    & .trim,
+    & .hull {
+      display: grid;
+      grid-template-columns: 6.5rem 1fr;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    & .label {
+      display: inline-block;
+      min-inline-size: 2.25rem;
+      font-weight: 700;
+    }
+
+    & .bar {
+      display: block;
+      block-size: 0.5rem;
+      overflow: hidden;
+      border: 1px solid var(--hud-fg);
+      border-radius: 0.25rem;
+    }
+
+    & .bar > span {
+      display: block;
+      block-size: 100%;
+      inline-size: 0;
+      background: var(--hud-fg);
+    }
+
+    & .instruments[data-trimmed] [data-trim-bar] {
+      background: var(--hud-accent);
+    }
+
+    /* A hull in danger: a word and a warning sign beside the figure, a striped bar, a heavier
+       frame. The colour only backs these up. */
+    & .low {
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    & .low svg {
+      inline-size: 0.75rem;
+      block-size: 0.75rem;
+      vertical-align: -0.05rem;
+      fill: var(--hud-accent);
+    }
+
+    & .low .bang {
+      fill: none;
+      stroke: var(--hud-bg);
+      stroke-width: 1.4;
+      stroke-linecap: round;
+    }
+
+    & .hull[data-low] .bar {
+      border-color: var(--hud-accent);
+      outline: 1px solid var(--hud-accent);
+    }
+
+    & .hull[data-low] [data-hull-bar] {
+      background: repeating-linear-gradient(
+        -45deg,
+        var(--hud-accent) 0 0.2rem,
+        transparent 0.2rem 0.4rem
+      );
+    }
+
+    & .irons {
+      grid-area: irons;
+      margin: 0;
+      font-weight: 700;
+    }
+
     /* Last, so it beats the display values above. */
     & [hidden] {
       display: none;
     }
   }
 
-  /* A phone, upright or on its side: the current order and a count, nothing more. */
-  @media (width < 40rem), (height < 30rem) {
+  /* A phone, upright or on its side: one panel. A tight row of instruments, the current order
+     and a count, then the views and the notice. The chart button (voyage-chart) sits in the
+     space kept free at the end of the instrument row. */
+  @media (width < 48rem), (height < 30rem) {
     voyage-hud {
+      --chart-slot: 3.125rem;
+
+      inset-block-start: max(0.5rem, env(safe-area-inset-top));
+      inset-inline: max(0.5rem, env(safe-area-inset-left)) max(0.5rem, env(safe-area-inset-right));
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.3rem;
+      padding: 0.375rem 0.5rem 0.4rem;
+      border: 1px solid var(--hud-line);
+      border-radius: 0.5rem;
+      background: var(--hud-bg);
+      font-size: 0.8125rem;
+      pointer-events: auto;
+
+      & .orders {
+        display: contents;
+      }
+
+      & .instruments {
+        order: -1;
+        inline-size: auto;
+        padding: 0;
+        border: 0;
+        background: none;
+      }
+
+      & h2 {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
       & .objectives {
         display: flex;
         align-items: baseline;
         gap: 0.6rem;
+        margin: 0;
       }
 
       & .objectives::after {
@@ -168,9 +447,103 @@
         white-space: normal;
       }
 
-      & .compass {
-        margin-block-start: 0.35rem;
-        padding-block-start: 0.35rem;
+      & .views,
+      & [data-notice] {
+        margin-block-start: 0;
+      }
+
+      & button {
+        min-block-size: 1.75rem;
+      }
+
+      & .gauges {
+        grid-template:
+          'compass wind speed hull' auto
+          'compass wind speed trim' auto
+          'irons irons irons irons' auto / auto auto minmax(3.5rem, 1fr) minmax(4.75rem, 1.3fr);
+        align-items: center;
+        gap: 0.1rem 0.5rem;
+        padding-inline-end: var(--chart-slot);
+        font-size: 0.75rem;
+        line-height: 1.2;
+      }
+
+      & .compass,
+      & .wind {
+        gap: 0.1rem;
+      }
+
+      & .dial {
+        inline-size: 3.25rem;
+        block-size: 3.25rem;
+      }
+
+      & .roomy {
+        display: none;
+      }
+
+      & .speed {
+        display: grid;
+        gap: 0.15rem;
+        padding: 0;
+        border: 0;
+      }
+
+      & .figure {
+        font-size: 1.375rem;
+      }
+
+      & .unit {
+        font-size: 0.75rem;
+      }
+
+      & .trim,
+      & .hull {
+        grid-template-columns: 1fr;
+        gap: 0.1rem;
+      }
+
+      & .hull {
+        align-self: end;
+      }
+
+      & .trim {
+        align-self: start;
+      }
+
+      & .label {
+        min-inline-size: 0;
+      }
+
+      & .bar {
+        block-size: 0.375rem;
+      }
+
+      & .irons {
+        padding-inline-end: 0;
+      }
+    }
+  }
+
+  /* A phone on its side: a column on the left; the cards open beside it. */
+  @media (width >= 600px) and (height < 30rem) {
+    voyage-hud {
+      inset-inline-end: auto;
+      inline-size: 19.5rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    voyage-hud {
+      & [data-card],
+      & [data-wind-arrow],
+      & [data-boom],
+      & [data-best] {
+        transition: rotate 0.12s linear;
+      }
+
+      & .bar > span {
+        transition: inline-size 0.12s linear;
       }
     }
   }

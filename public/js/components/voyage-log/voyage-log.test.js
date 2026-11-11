@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 // The log is tested on its own: the real sea is kept from loading, the test raises `live` in its
 // place and plays the sea's part by writing to the two stores.
 
-const PORTS = ['wittgenstein', 'juniper', 'quickjs', 'edge', 'dioxus', 'strand'];
+const PORTS = ['wittgenstein', 'juniper', 'quickjs', 'edge', 'dioxus', 'plato', 'strand'];
 
 /**
  * @param {import('@playwright/test').Page} page
@@ -12,7 +12,7 @@ const PORTS = ['wittgenstein', 'juniper', 'quickjs', 'edge', 'dioxus', 'strand']
 async function board(page, { found = [], sailed = false, live = true } = {}) {
   await page.route('**/components/voyage-sea/voyage-sea.js', (route) => route.abort());
   await page.addInitScript(
-    (state) => localStorage.setItem('philosophers-voyage:v1', JSON.stringify(state)),
+    (state) => localStorage.setItem('philosophers-voyage:v2', JSON.stringify(state)),
     { found, view: 'poster', sailed },
   );
   await page.goto('/?wrap=never');
@@ -51,7 +51,7 @@ const openCards = (page) => page.locator('voyage-log [data-card][data-open]');
 test('ashore every card stays on the page and nothing opens', async ({ page }) => {
   await board(page, { live: false });
   await expect(openCards(page)).toHaveCount(0);
-  await expect(page.locator('voyage-log .card:visible')).toHaveCount(8);
+  await expect(page.locator('voyage-log .card:visible')).toHaveCount(9);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText("The Philosopher's Voyage");
   expect(await reading(page)).toBe(false);
 });
@@ -130,7 +130,7 @@ test('focus leaves a card that sailing away hides', async ({ page }) => {
 });
 
 test('the finale waits for the last port card to close, then shows once', async ({ page }) => {
-  await board(page, { sailed: true, found: PORTS.slice(0, 5) });
+  await board(page, { sailed: true, found: PORTS.slice(0, 6) });
   await arriveAt(page, 'strand');
   await expect(openCards(page)).toHaveAttribute('data-card', 'strand');
 
@@ -156,6 +156,60 @@ test('"Sail it again" starts a new voyage', async ({ page }) => {
   await board(page, { sailed: true, found: PORTS });
   await page.getByRole('button', { name: 'Sail it again' }).click();
   await expect(openCards(page)).toHaveCount(0);
-  expect(await voyageState(page)).toEqual({ found: [], view: 'poster', sailed: false });
+  expect(await voyageState(page)).toMatchObject({ found: [], view: 'poster', sailed: false });
   expect(await reading(page)).toBe(false);
+});
+
+test('the logbook lists the seven ports in the order of the chart data, without coordinates', async ({
+  page,
+}) => {
+  await board(page, { live: false });
+  const ports = page.locator('voyage-log [data-port]');
+  await expect(ports).toHaveCount(7);
+  expect(
+    await ports.evaluateAll((cards) => cards.map((card) => card.getAttribute('data-card'))),
+  ).toEqual(PORTS);
+  expect(await ports.evaluateAll((cards) => cards.map((card) => card.id))).toEqual(
+    PORTS.map((port) => `port-${port}`),
+  );
+  await expect(page.locator('voyage-log [data-x], voyage-log [data-z]')).toHaveCount(0);
+  expect(
+    await page
+      .locator('voyage-log [data-port][data-view]')
+      .evaluateAll((cards) => cards.map((card) => [card.id, card.getAttribute('data-view')])),
+  ).toEqual([
+    ['port-wittgenstein', 'gold'],
+    ['port-juniper', 'chart'],
+    ['port-plato', 'terminal'],
+  ]);
+});
+
+test('the cave opens its card like any port', async ({ page }) => {
+  await board(page, { sailed: true });
+  await arriveAt(page, 'plato');
+  await expect(openCards(page)).toHaveAttribute('data-card', 'plato');
+  await expect(page.getByRole('heading', { name: "Plato's Cave" })).toBeVisible();
+  await expect(openCards(page).locator('.unlock')).toContainText('Terminal');
+});
+
+test('the finale does not show with six of the seven found', async ({ page }) => {
+  await board(page, { sailed: true, found: PORTS.filter((port) => port !== 'plato') });
+  await expect(openCards(page)).toHaveCount(0);
+  await arriveAt(page, 'plato');
+  await page.keyboard.press('Escape');
+  await expect(openCards(page)).toHaveAttribute('data-card', 'finale');
+});
+
+test('a wreck closes the open card, once', async ({ page }) => {
+  await board(page, { sailed: true });
+  await arriveAt(page, 'edge');
+  await expect(openCards(page)).toHaveAttribute('data-card', 'edge');
+  await page.evaluate(async () => (await import('/js/stores/passage.js')).passage.note('wrecked'));
+  await expect(openCards(page)).toHaveCount(0);
+  expect(await reading(page)).toBe(false);
+
+  // Still wrecked, towed to a port: its card may open.
+  await arriveAt(page, null);
+  await arriveAt(page, 'juniper');
+  await expect(openCards(page)).toHaveAttribute('data-card', 'juniper');
 });

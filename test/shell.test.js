@@ -99,11 +99,12 @@ test('the document preloads exactly the modules it will run', async () => {
 // whole folder, anything else one file.
 const BOUNDARIES = {
   '/js/game/': [],
-  '/js/stores/': ['/js/lib/store.js'],
+  '/js/stores/': ['/js/lib/'],
   '/js/render/': [],
   '/js/input/': [],
   '/js/components/voyage-sea/': ['/js/game/', '/js/stores/', '/js/render/', '/js/input/'],
   '/js/components/voyage-hud/': ['/js/stores/', '/js/game/objectives.js'],
+  '/js/components/voyage-chart/': ['/js/stores/', '/js/game/terrain.js', '/js/game/chart-data.js'],
   '/js/components/voyage-log/': ['/js/stores/'],
   '/js/gift/': [],
   '/js/lib/': [],

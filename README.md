@@ -1,9 +1,19 @@
 # The Philosopher's Voyage
 
-A birthday gift for Christoph: a small sailing game in which he steers a boat across a poster-style 3D sea,
-finds six port islands, and is rewarded at each with a card (a philosopher's quote, a wine, a coffee, a dish)
-and sometimes a new view of the whole sea. It is a static site with no framework and no build step, deployed
-to Wasmer Edge from `public/`.
+A birthday gift for Christoph: a real sailing game. He steers a boat across a poster-style 3D sea of 2400
+units with a mainland, some twenty islands, a volcano, reefs and a sea cave, and finds seven ports (one in
+the cave). Each port rewards him with a card (a philosopher's quote, a wine, a coffee, a dish) and sometimes
+a new view of the whole sea. The wind matters, the sails must be trimmed, an engine is optional, and running
+aground damages the hull. The HUD has a compass and instruments; the chart (M) carries no markers. It is a
+static site with no framework and no build step, deployed to Wasmer Edge from `public/`.
+
+## Controls
+
+- Left / right (or A / D): steer.
+- Up / down (or W / S): let the sails out / haul them in.
+- E: engine on or off.
+- M: open or close the chart.
+- Drag: look round.
 
 ## Folder map
 
@@ -12,16 +22,19 @@ public/              the deployable site, and nothing else
   index.html         the one document; a readable logbook without JavaScript or WebGL 2
   css/               one cascade layer per file
   js/main.js         wires the page: the birthday paper, then the three lazy islands
-  js/game/           the sea as numbers (pure, unit tested)
+  js/game/           the sea as numbers (pure, unit tested):
+                     chart-data.js (the world as data), terrain.js (height grid, collision queries),
+                     sailing.js (wind and boat physics), objectives.js
   js/stores/         state: remembered progress, and the passage right now
   js/render/         WebGL 2 and GLSL, one file per view
   js/input/          the helm: keys and on-screen buttons
-  js/components/     <voyage-sea>, <voyage-hud>, <voyage-log>
+  js/components/     <voyage-sea>, <voyage-hud>, <voyage-chart>, <voyage-log>
   js/gift/           the birthday wrapping paper (ported module)
   js/lib/            store.js, lazy-define.js
   assets/            fonts, icon
 Staticfile           Wasmer Edge static-website marker: root is public/
 settings/config.toml Wasmer Edge static server settings
+docs/old-world.js    the retired v1 physics, kept for reference
 docs/ARCHITECTURE.md the contract: who may import what, the stores, the markup, the renderer
 test/                shell test, CSP hash helper, browser tests
 package.json, *.config.js, tsconfig.json, types.d.ts   dev tooling, never deployed
@@ -64,6 +77,8 @@ npm run test:browser   # Playwright: axe-core before and after upgrade, and a sm
   (or at the path in `PW_CHROMIUM`) it is launched directly, so no download is needed.
 
 ## Deploy to Wasmer Edge
+
+The site deploys automatically to Wasmer Edge from the `main` branch. To deploy by hand:
 
 The repository root is already a Wasmer Edge static website (`Staticfile`, `settings/config.toml`, `public/`).
 

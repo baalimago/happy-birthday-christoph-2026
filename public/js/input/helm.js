@@ -1,18 +1,24 @@
-// The helm: arrow keys (or WASD) and on-screen buttons, read as four booleans.
+// The helm: keys and on-screen buttons, read as a handful of booleans.
+//   steer        ArrowLeft / ArrowRight, or A / D
+//   sheet        ArrowUp lets the sails out, ArrowDown hauls them in (or W / S)
+//   engine       E switches it on and off
 
-/** @typedef {{ left: boolean, right: boolean, up: boolean, down: boolean }} Helm */
-/** @typedef {keyof Helm} Order */
+/**
+ * @typedef {{ left: boolean, right: boolean, out: boolean, in: boolean, engine: boolean }} Helm
+ *   left, right, out and in are true while held; engine stays on until switched off
+ * @typedef {'left' | 'right' | 'out' | 'in'} Order
+ */
 
 /** @type {Record<string, Order>} */
 const KEYS = {
   ArrowLeft: 'left',
   ArrowRight: 'right',
-  ArrowUp: 'up',
-  ArrowDown: 'down',
+  ArrowUp: 'out',
+  ArrowDown: 'in',
   a: 'left',
   d: 'right',
-  w: 'up',
-  s: 'down',
+  w: 'out',
+  s: 'in',
 };
 
 /** How long a keyboard press of an on-screen button holds its order, in milliseconds. */
@@ -20,34 +26,42 @@ const NUDGE = 450;
 
 /**
  * Listen for steering until the signal aborts. The returned object is live: read it every frame.
- * On-screen buttons are `button[data-helm="left|right|up|down"]` inside `root`.
+ * On-screen buttons are `button[data-helm="left|right|out|in|engine"]` inside `root`; the engine
+ * button gets `aria-pressed`.
  * @param {HTMLElement} root
  * @param {AbortSignal} signal
  * @returns {Helm}
  */
 export function takeHelm(root, signal) {
   /** @type {Helm} */
-  const helm = { left: false, right: false, up: false, down: false };
+  const helm = { left: false, right: false, out: false, in: false, engine: false };
   const release = () => {
-    helm.left = helm.right = helm.up = helm.down = false;
+    helm.left = helm.right = helm.out = helm.in = false;
+  };
+  const switchEngine = () => {
+    helm.engine = !helm.engine;
+    for (const button of root.querySelectorAll('button[data-helm="engine"]')) {
+      button.setAttribute('aria-pressed', String(helm.engine));
+    }
   };
 
   /** @param {KeyboardEvent} event */
-  const orderOf = (event) => {
-    if (event.ctrlKey || event.metaKey || event.altKey) return undefined;
-    const target = event.target;
-    if (
-      target instanceof HTMLElement &&
-      target.closest('input, textarea, select, [contenteditable]')
-    ) {
-      return undefined;
-    }
-    return KEYS[event.key.length === 1 ? event.key.toLowerCase() : event.key];
-  };
+  const typing = (event) =>
+    event.ctrlKey ||
+    event.metaKey ||
+    event.altKey ||
+    (event.target instanceof HTMLElement &&
+      event.target.closest('input, textarea, select, [contenteditable]') !== null);
+  /** @param {KeyboardEvent} event */
+  const keyOf = (event) => (event.key.length === 1 ? event.key.toLowerCase() : event.key);
+
   addEventListener(
     'keydown',
     (event) => {
-      const order = orderOf(event);
+      if (typing(event)) return;
+      const key = keyOf(event);
+      if (key === 'e' && !event.repeat) switchEngine();
+      const order = KEYS[key];
       if (!order) return;
       helm[order] = true;
       event.preventDefault();
@@ -57,7 +71,7 @@ export function takeHelm(root, signal) {
   addEventListener(
     'keyup',
     (event) => {
-      const order = orderOf(event);
+      const order = KEYS[keyOf(event)];
       if (order) helm[order] = false;
     },
     { signal },
@@ -65,19 +79,21 @@ export function takeHelm(root, signal) {
   addEventListener('blur', release, { signal });
 
   /** @param {Event} event */
-  const buttonOrder = (event) => {
+  const buttonOf = (event) => {
     const button =
       event.target instanceof Element ? event.target.closest('button[data-helm]') : null;
-    const order = button?.getAttribute('data-helm') ?? '';
-    return order in helm ? { button, order: /** @type {Order} */ (order) } : null;
+    return button ? { button, order: button.getAttribute('data-helm') ?? '' } : null;
   };
+  /** @param {string} order @returns {order is Order} */
+  const held = (order) => order === 'left' || order === 'right' || order === 'out' || order === 'in';
+
   root.addEventListener(
     'pointerdown',
     (event) => {
-      const hit = buttonOrder(event);
-      if (!hit) return;
+      const hit = buttonOf(event);
+      if (!hit || !held(hit.order)) return;
       helm[hit.order] = true;
-      hit.button?.setPointerCapture(event.pointerId);
+      hit.button.setPointerCapture(event.pointerId);
     },
     { signal },
   );
@@ -85,21 +101,27 @@ export function takeHelm(root, signal) {
     root.addEventListener(
       type,
       (event) => {
-        const hit = buttonOrder(event);
-        if (hit) helm[hit.order] = false;
+        const hit = buttonOf(event);
+        if (hit && held(hit.order)) helm[hit.order] = false;
       },
       { signal },
     );
   }
-  // Enter or Space on a focused button: a click with no pointer. Hold the order for a moment.
   root.addEventListener(
     'click',
     (event) => {
-      const hit = buttonOrder(event);
-      if (!hit || /** @type {MouseEvent} */ (event).detail !== 0) return;
-      helm[hit.order] = true;
+      const hit = buttonOf(event);
+      if (!hit) return;
+      if (hit.order === 'engine') {
+        switchEngine();
+        return;
+      }
+      // Enter or Space on a focused button: a click with no pointer. Hold the order for a moment.
+      const order = hit.order;
+      if (!held(order) || /** @type {MouseEvent} */ (event).detail !== 0) return;
+      helm[order] = true;
       setTimeout(() => {
-        helm[hit.order] = false;
+        helm[order] = false;
       }, NUDGE);
     },
     { signal },
@@ -107,7 +129,7 @@ export function takeHelm(root, signal) {
   root.addEventListener(
     'contextmenu',
     (event) => {
-      if (buttonOrder(event)) event.preventDefault();
+      if (buttonOf(event)) event.preventDefault();
     },
     { signal },
   );
