@@ -1,0 +1,218 @@
+@layer components {
+  voyage-log {
+    display: grid;
+    gap: 1.75rem;
+
+    & .ports {
+      display: grid;
+      gap: 1.75rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    & .card {
+      padding: 1.5rem;
+      border: var(--card-border) solid var(--card-line);
+      border-radius: var(--card-radius);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+      color: var(--card-fg);
+      font: var(--text-weight) var(--text-size) / 1.5 var(--font-text);
+    }
+
+    & .eyebrow {
+      color: var(--card-accent);
+      font-size: 0.8125em;
+      font-weight: 700;
+      line-height: 1.3;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    & h1,
+    & h2 {
+      margin-block: 0.3rem 0.6rem;
+      font-size: var(--display-size);
+      overflow-wrap: break-word;
+    }
+
+    & h1::before,
+    & h2::before {
+      content: var(--display-prefix);
+      color: var(--card-accent);
+    }
+
+    & .card > p + p {
+      margin-block-start: 0.6rem;
+    }
+
+    & .lede {
+      font-size: 1.125em;
+      line-height: 1.4;
+    }
+
+    & blockquote {
+      margin: 0;
+      padding-inline-start: 1rem;
+      border-inline-start: 0.25rem solid var(--card-accent);
+    }
+
+    & blockquote p {
+      font-size: 1.25em;
+      font-style: var(--quote-style);
+      line-height: 1.3;
+      text-wrap: balance;
+    }
+
+    & blockquote footer {
+      margin-block-start: 0.35rem;
+      font-size: 0.875em;
+    }
+
+    & .fare {
+      display: grid;
+      gap: 0.4rem;
+      margin-block: 0.85rem 0;
+      padding-block: 0.7rem;
+      border-block: 1px solid var(--card-line);
+    }
+
+    & .fare div {
+      display: grid;
+      grid-template-columns: 3.75rem 1fr;
+      gap: 0.75rem;
+      align-items: baseline;
+    }
+
+    & .fare dt {
+      color: var(--card-accent);
+      font-size: 0.8125em;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    & .fare dd {
+      margin: 0;
+    }
+
+    & .unlock {
+      margin-block-start: 0.7rem;
+      font-weight: 700;
+    }
+
+    & .card > button {
+      inline-size: 100%;
+      margin-block-start: 1rem;
+      font-family: var(--font-text);
+    }
+
+    /* On a card the ring has to show against the card, not against the sea. */
+    & button:focus-visible {
+      outline-color: var(--card-accent);
+    }
+
+    & .finale h2 {
+      font-size: calc(var(--display-size) * 1.2);
+    }
+
+    /* Ashore the buttons have nothing to do. */
+    voyage-sea:not([live]) & button {
+      display: none;
+    }
+
+    /* At sea: one card, the open one, over the canvas. */
+    voyage-sea[live] & {
+      display: block;
+    }
+
+    voyage-sea[live] & .ashore,
+    voyage-sea[live] & .card:not([data-open]) {
+      display: none;
+    }
+
+    /* A sheet above the helm, which must stay in reach: a port card closes by sailing away. */
+    voyage-sea[live] & .card {
+      position: fixed;
+      z-index: 3;
+      inset-inline: max(0.5rem, env(safe-area-inset-left)) max(0.5rem, env(safe-area-inset-right));
+      inset-block-end: calc(var(--helm-reserve) + env(safe-area-inset-bottom));
+      max-block-size: 46dvh;
+      padding: 1rem 1.125rem;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      box-shadow:
+        var(--card-shadow),
+        0 0.5rem 2rem rgb(0 0 0 / 0.35);
+    }
+
+    /* The way out stays in view however long the card. */
+    voyage-sea[live] & .card > button {
+      position: sticky;
+      inset-block-end: 0;
+      box-shadow:
+        0 1.25rem 0 var(--card-bg),
+        0 -0.75rem 0.75rem var(--card-bg);
+    }
+  }
+
+  @media (width < 900px) {
+    voyage-log {
+      voyage-sea[live] & h1,
+      voyage-sea[live] & h2 {
+        margin-block-end: 0.5rem;
+        font-size: calc(var(--display-size) * 0.8);
+      }
+
+      voyage-sea[live] & .fare {
+        margin-block-start: 0.75rem;
+        padding-block: 0.6rem;
+      }
+    }
+  }
+
+  /* Room at the side: a panel in the left column, under the HUD. */
+  @media (width >= 900px), (width >= 600px) and (height < 30rem) {
+    voyage-log {
+      --hud-reserve: 18.5rem;
+
+      voyage-sea[live] & .card {
+        inset-inline: max(0.75rem, env(safe-area-inset-left)) auto;
+        inset-block-end: max(1.25rem, env(safe-area-inset-bottom));
+        inline-size: min(28rem, 100vw - 1.5rem);
+        max-block-size: calc(100dvh - var(--hud-reserve) - 1.25rem);
+        padding: 1.125rem 1.5rem 1.25rem;
+      }
+    }
+  }
+
+  /* A phone on its side: no room under the HUD, so the card goes beside it, above the helm. */
+  @media (width >= 600px) and (height < 30rem) {
+    voyage-log {
+      voyage-sea[live] & .card {
+        inset-inline: calc(max(0.75rem, env(safe-area-inset-left)) + 20rem)
+          max(0.75rem, env(safe-area-inset-right));
+        inset-block: max(0.75rem, env(safe-area-inset-top)) auto;
+        inline-size: auto;
+        max-block-size: calc(100dvh - var(--helm-reserve) - 1.25rem);
+        padding: 1rem 1.125rem;
+      }
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    voyage-log {
+      voyage-sea[live] & .card[data-open] {
+        transition:
+          opacity 0.25s ease-out,
+          translate 0.25s ease-out;
+
+        @starting-style {
+          opacity: 0;
+          translate: 0 1rem;
+        }
+      }
+    }
+  }
+}

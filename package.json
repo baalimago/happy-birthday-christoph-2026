@@ -1,0 +1,35 @@
+{
+  "name": "philosophers-voyage",
+  "private": true,
+  "type": "module",
+  "description": "A small sailing game as a static site. Dev tools only; nothing is built, and only public/ is deployed.",
+  "imports": {
+    "#lib/*": "./public/js/lib/*",
+    "#stores/*": "./public/js/stores/*",
+    "#components/*": "./public/js/components/*",
+    "#game/*": "./public/js/game/*",
+    "#render/*": "./public/js/render/*",
+    "#input/*": "./public/js/input/*",
+    "#gift/*": "./public/js/gift/*"
+  },
+  "scripts": {
+    "serve": "python3 -m http.server 4173 --directory public",
+    "check": "npm run check:html && npm run check:js && npm run test:unit",
+    "check:html": "html-validate \"public/*.html\" && java -jar node_modules/vnu-jar/build/dist/vnu.jar --errors-only public/*.html",
+    "check:js": "eslint . && prettier --check . && tsc",
+    "test:unit": "node --test \"public/js/game/**/*.test.js\" \"public/js/gift/**/*.test.js\" \"test/*.test.js\"",
+    "test:browser": "playwright test",
+    "csp-hash": "node test/csp-hash.js",
+    "preloads": "node test/preloads.js"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
+    "eslint": "^10.14.0",
+    "html-validate": "^11.18.0",
+    "prettier": "^3.9.10",
+    "typescript": "^7.0.2",
+    "vnu-jar": "^26.11.3"
+  }
+}

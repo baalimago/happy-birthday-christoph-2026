@@ -1,0 +1,120 @@
+@layer layout {
+  /* Ashore: no JavaScript or no WebGL 2. The page is a logbook, the cards one column. */
+  body {
+    min-block-size: 100dvh;
+    /* A poster sunrise over the first page: sun, then the horizon in two bands. */
+    background:
+      linear-gradient(
+          to bottom,
+          transparent 5.5rem,
+          var(--poster-coral) 5.5rem 6.5rem,
+          var(--poster-teal) 6.5rem 7.5rem,
+          var(--page-bg) 7.5rem
+        )
+        top / 100% 7.5rem no-repeat,
+      radial-gradient(circle at 50% 5.5rem, var(--card-bg) 0 2.75rem, transparent 2.8rem) top / 100%
+        7.5rem no-repeat,
+      linear-gradient(var(--page-accent), var(--page-accent)) top / 100% 7.5rem no-repeat,
+      var(--page-bg);
+  }
+
+  main,
+  body > footer {
+    box-sizing: content-box;
+    max-inline-size: 36rem;
+    margin-inline: auto;
+    padding-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right));
+  }
+
+  main {
+    padding-block: 9.5rem 2rem;
+  }
+
+  main:focus {
+    outline: none;
+  }
+
+  body > footer {
+    padding-block: 1rem max(2.5rem, env(safe-area-inset-bottom));
+    font-size: 0.875rem;
+    text-align: center;
+  }
+
+  body > footer p + p {
+    margin-block-start: 0.25rem;
+  }
+
+  /* At sea: the canvas is the page, and nothing scrolls but an open card. */
+  html:has(voyage-sea[live]),
+  html:has(voyage-sea[live]) body {
+    block-size: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  html:has(voyage-sea[live]) main {
+    padding: 0;
+  }
+
+  voyage-sea[live] {
+    position: fixed;
+    inset: 0;
+    background: var(--sea);
+  }
+
+  .helm {
+    position: fixed;
+    z-index: 2;
+    inset-block-end: max(1rem, env(safe-area-inset-bottom));
+    inset-inline-start: 50%;
+    display: flex;
+    gap: 0.75rem;
+    translate: -50% 0;
+  }
+
+  .helm button {
+    inline-size: var(--helm-button);
+    block-size: var(--helm-button);
+    padding: 0;
+    border: 2px solid var(--hud-fg);
+    border-radius: 50%;
+    background: var(--hud-bg);
+    color: var(--hud-fg);
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .helm button:active {
+    background: var(--hud-accent);
+    color: var(--hud-bg);
+  }
+
+  .helm svg {
+    inline-size: 1.75rem;
+    block-size: 1.75rem;
+    pointer-events: none;
+  }
+
+  html:has(voyage-sea[live]) body > footer {
+    display: none;
+  }
+
+  /* Room at the side: a wide screen, or a phone on its side. */
+  @media (width >= 900px), (width >= 600px) and (height < 30rem) {
+    .helm {
+      inset-inline: auto max(1rem, env(safe-area-inset-right));
+      translate: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .helm button {
+      transition:
+        background-color 0.1s,
+        color 0.1s;
+    }
+  }
+}

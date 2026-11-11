@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true,
+    "target": "es2024",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "lib": ["es2024", "dom", "dom.iterable"],
+    "types": [],
+    "resolvePackageJsonImports": false,
+    "paths": {
+      "#lib/*": ["./public/js/lib/*"],
+      "#stores/*": ["./public/js/stores/*"],
+      "#components/*": ["./public/js/components/*"],
+      "#game/*": ["./public/js/game/*"],
+      "#render/*": ["./public/js/render/*"],
+      "#input/*": ["./public/js/input/*"]
+    }
+  },
+  "include": ["public/js/**/*.js", "types.d.ts", "types.gift.d.ts"],
+  "exclude": ["public/js/**/*.test.js", "public/js/gift/"]
+}

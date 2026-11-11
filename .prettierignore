@@ -1,0 +1,13 @@
+*.html
+node_modules/
+package-lock.json
+test-results/
+playwright-report/
+# A ported third-party module: kept as it came.
+public/js/gift/
+# Reference material, not source.
+docs/
+# Wasmer Edge files, kept as the template wrote them.
+settings/
+Staticfile
+app.yaml

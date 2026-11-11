@@ -1,0 +1,3 @@
+IM Fell English and IM Fell English SC (Igino Marini), Anton (Vernon Adams), DM Sans (Colophon Foundry),
+Josefin Sans (Santiago Orozco) and Poiret One (Denis Masharov) are licensed under the SIL Open Font
+License 1.1, https://openfontlicense.org. Files are the Latin subsets served by Google Fonts.

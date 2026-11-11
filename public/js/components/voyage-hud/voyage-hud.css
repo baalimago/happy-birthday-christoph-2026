@@ -1,0 +1,177 @@
+@layer components {
+  voyage-hud {
+    position: fixed;
+    inset-block-start: max(0.75rem, env(safe-area-inset-top));
+    inset-inline-start: max(0.75rem, env(safe-area-inset-left));
+    display: block;
+    inline-size: max-content;
+    max-inline-size: min(19rem, 100vw - 1.5rem);
+    padding: 0.6rem 0.8rem 0.7rem;
+    border: 1px solid var(--hud-line);
+    border-radius: 0.5rem;
+    background: var(--hud-bg);
+    color: var(--hud-fg);
+    font: 0.875rem / 1.35 var(--font-text);
+
+    & h2 {
+      font: 0.8125rem / 1.2 var(--font-display);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    & .objectives {
+      display: grid;
+      gap: 0.15rem;
+      margin: 0.4rem 0 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: goals done;
+    }
+
+    & li {
+      display: flex;
+      gap: 0.45rem;
+      counter-increment: goals;
+    }
+
+    & li[data-done] {
+      counter-increment: goals done;
+    }
+
+    /* An empty box to tick: the shape changes, not just the colour. */
+    & li::before {
+      content: '';
+      flex: none;
+      inline-size: 0.8rem;
+      block-size: 0.8rem;
+      margin-block-start: 0.2rem;
+      border: 1px solid var(--hud-fg);
+      border-radius: 0.15rem;
+    }
+
+    & li[data-done]::before {
+      border-color: var(--hud-accent);
+      background: var(--hud-accent);
+      clip-path: polygon(8% 52%, 22% 38%, 40% 58%, 80% 10%, 95% 24%, 40% 90%);
+    }
+
+    & li[aria-current] {
+      font-weight: 700;
+    }
+
+    & [data-done-mark] {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    & .compass {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin-block-start: 0.5rem;
+      padding-block-start: 0.5rem;
+      border-block-start: 1px solid var(--hud-line);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* An arrowhead that points up at 0rad; the element turns it toward the port. */
+    & .needle {
+      flex: none;
+      inline-size: 1rem;
+      block-size: 1rem;
+      background: var(--hud-accent);
+      clip-path: polygon(50% 0, 80% 100%, 50% 80%, 20% 100%);
+    }
+
+    & .views {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      margin-block-start: 0.5rem;
+    }
+
+    & button {
+      min-block-size: 2rem;
+      padding: 0.15rem 0.6rem;
+      border: 1px solid var(--hud-line);
+      border-radius: 1rem;
+      background: none;
+      color: inherit;
+      font-size: 0.8125rem;
+      cursor: pointer;
+    }
+
+    & button[aria-pressed='true'] {
+      border-color: var(--hud-accent);
+      background: var(--hud-accent);
+      color: var(--hud-bg);
+      font-weight: 700;
+    }
+
+    & button:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    & [data-notice] {
+      margin-block-start: 0.5rem;
+      font-weight: 700;
+    }
+
+    /* Stays in the layout while empty so the live region is announced when it fills. */
+    & [data-notice]:empty {
+      margin: 0;
+    }
+
+    /* Last, so it beats the display values above. */
+    & [hidden] {
+      display: none;
+    }
+  }
+
+  /* A phone, upright or on its side: the current order and a count, nothing more. */
+  @media (width < 40rem), (height < 30rem) {
+    voyage-hud {
+      & .objectives {
+        display: flex;
+        align-items: baseline;
+        gap: 0.6rem;
+      }
+
+      & .objectives::after {
+        content: counter(done) ' of ' counter(goals);
+        flex: none;
+        margin-inline-start: auto;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Out of sight but still in the list for a screen reader, and still counted. */
+      & li:not([aria-current]) {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      & .objectives:not(:has([aria-current])) li:last-child {
+        position: static;
+        inline-size: auto;
+        block-size: auto;
+        overflow: visible;
+        clip-path: none;
+        white-space: normal;
+      }
+
+      & .compass {
+        margin-block-start: 0.35rem;
+        padding-block-start: 0.35rem;
+      }
+    }
+  }
+}
