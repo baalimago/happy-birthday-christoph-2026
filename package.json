@@ -10,14 +10,15 @@
     "#game/*": "./public/js/game/*",
     "#render/*": "./public/js/render/*",
     "#input/*": "./public/js/input/*",
-    "#gift/*": "./public/js/gift/*"
+    "#gift/*": "./public/js/gift/*",
+    "#audio/*": "./public/js/audio/*"
   },
   "scripts": {
     "serve": "python3 -m http.server 4173 --directory public",
     "check": "npm run check:html && npm run check:js && npm run test:unit",
     "check:html": "html-validate \"public/*.html\" && java -jar node_modules/vnu-jar/build/dist/vnu.jar --errors-only public/*.html",
     "check:js": "eslint . && prettier --check . && tsc",
-    "test:unit": "node --test \"public/js/game/**/*.test.js\" \"public/js/gift/**/*.test.js\" \"test/*.test.js\"",
+    "test:unit": "node --test \"public/js/game/**/*.test.js\" \"public/js/gift/**/*.test.js\" \"public/js/audio/**/*.test.js\" \"test/*.test.js\"",
     "test:browser": "playwright test",
     "csp-hash": "node test/csp-hash.js",
     "preloads": "node test/preloads.js"
