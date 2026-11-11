@@ -128,8 +128,12 @@ export class VoyageHud extends HTMLElement {
     this.addEventListener(
       'click',
       (event) => {
-        if (!(event.target instanceof Element && event.target.closest('button[data-graphics]')))
+        if (!(event.target instanceof Element)) return;
+        if (event.target.closest('button[data-camera]')) {
+          graphics.frame(graphics.state.camera === 'free' ? 'follow' : 'free');
           return;
+        }
+        if (!event.target.closest('button[data-graphics]')) return;
         const { using, loading, wish } = graphics.state;
         const now = loading ? wish : using;
         graphics.ask(now === 'fine' ? 'fast' : 'fine');
@@ -162,15 +166,23 @@ export class VoyageHud extends HTMLElement {
     if (loading) label = wish === 'fine' ? 'Loading fine graphics…' : 'Loading low-poly…';
     if (button.textContent !== label) button.textContent = label;
     button.toggleAttribute('data-loading', loading);
+    const camera = this.querySelector('button[data-camera]');
+    const framing = graphics.state.camera === 'free' ? 'Camera: free' : 'Camera: follow';
+    if (camera && camera.textContent !== framing) camera.textContent = framing;
   }
 
-  /** V steps through the views unlocked so far. @param {KeyboardEvent} event */
+  /** V steps through the views unlocked so far; C changes how the camera behaves. @param {KeyboardEvent} event */
   #cycle(event) {
-    if (event.key !== 'v' && event.key !== 'V') return;
+    const key = event.key.toLowerCase();
+    if (key !== 'v' && key !== 'c') return;
     if (event.ctrlKey || event.metaKey || event.altKey || event.repeat || event.isComposing) return;
     const target = event.target;
     if (target instanceof HTMLElement) {
       if (target.isContentEditable || target.closest('input, textarea, select')) return;
+    }
+    if (key === 'c') {
+      graphics.frame(graphics.state.camera === 'free' ? 'follow' : 'free');
+      return;
     }
     const open = [...this.querySelectorAll('button[data-view]:not([hidden])')];
     if (open.length < 2) return;

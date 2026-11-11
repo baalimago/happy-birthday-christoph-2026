@@ -283,3 +283,19 @@ test('the graphics switch is offered only where either look can be drawn', async
   // Software WebGL: triangles only, so there is nothing to choose.
   await expect(page.locator('voyage-hud button[data-graphics]')).toBeHidden();
 });
+
+test('C switches the camera between follow and free, and the choice is remembered', async ({
+  page,
+}) => {
+  await board(page);
+  await weighAnchor(page);
+  const camera = page.locator('voyage-hud button[data-camera]');
+  await expect(camera).toHaveText('Camera: follow');
+  await page.keyboard.press('c');
+  await expect(camera).toHaveText('Camera: free');
+  expect(await page.evaluate(() => localStorage.getItem('philosophers-voyage:camera'))).toBe(
+    'free',
+  );
+  await camera.click();
+  await expect(camera).toHaveText('Camera: follow');
+});

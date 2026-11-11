@@ -134,6 +134,7 @@
         <li><strong>Sails:</strong> <kbd>↑</kbd> lets them out, <kbd>↓</kbd> hauls them in. Trim until the boom meets the marker on the wind dial; the instruments tell you which way. You cannot sail straight into the wind.</li>
         <li><strong>Easier:</strong> <kbd>E</kbd> starts the engine, and it works in any wind.</li>
         <li><strong>To stop:</strong> <kbd>X</kbd> drops the anchor and holds her where she lies. <kbd>X</kbd> again weighs it.</li>
+        <li><strong>Look around:</strong> drag the sea. <kbd>C</kbd> switches the camera between follow (it swings back behind the boat) and free (it stays where you leave it).</li>
         <li><strong>Each place found</strong> gives a passage for the ship's library (<kbd>L</kbd>), and some unlock a new view of the sea: switch with <kbd>V</kbd> or the buttons under the Captain's orders. <kbd>Q</kbd> mutes the sound. Keep off the rocks.</li>
       </ol>
       <p class="ashore">No WebGL aboard? Then this is the logbook, and it has everything the ports would have paid out.</p>
@@ -312,7 +313,10 @@
         </div>
         <p class="irons" data-irons-note hidden>In irons: bear away or start the engine</p>
       </div>
-      <button type="button" class="graphics" data-graphics title="Switch between fine and low-poly graphics" hidden>Graphics: fine</button>
+      <div class="switches">
+        <button type="button" data-camera aria-keyshortcuts="C" title="Follow swings the camera back behind the boat; free leaves it where you drag it (C)">Camera: follow</button>
+        <button type="button" data-graphics title="Switch between fine and low-poly graphics" hidden>Graphics: fine</button>
+      </div>
     </div>
   </voyage-hud>
   <voyage-chart>

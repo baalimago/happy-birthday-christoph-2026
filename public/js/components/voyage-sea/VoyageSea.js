@@ -18,7 +18,9 @@ import { voyage } from '#stores/voyage.js';
  */
 
 /** Where the camera rests: off the quarter, so the sails show their faces. */
-const REST_YAW = 2.75;
+const REST_YAW = Math.PI; // dead astern, looking along her heading
+/** Seconds the follow camera waits after being let go before it swings back. */
+const LINGER = 1.5;
 const REST_PITCH = 0.24;
 const REST_DISTANCE = 8.6;
 /** Under the rock the camera closes up and drops, to stay inside the cave. */
@@ -142,6 +144,10 @@ export class VoyageSea extends HTMLElement {
   #hold = 0;
   #yaw = REST_YAW;
   #pitch = REST_PITCH;
+  /** Seconds since the captain let go of the camera. */
+  #letGo = LINGER + 2;
+  /** Her heading at the last frame, for the free camera. */
+  #headed = 0;
   #distance = REST_DISTANCE;
   #shiftX = 0;
   #shiftY = -0.1;
@@ -424,14 +430,27 @@ export class VoyageSea extends HTMLElement {
       const bearing = Math.atan2(ex * cos - ez * sin, ex * sin + ez * cos);
       restYaw = bearing + Math.PI - 1.05;
     }
-    if (!this.hasAttribute('looking')) {
-      const ease = Math.min(1, dt * (fear ? 1.2 : 0.8));
+    const free = graphics.state.camera === 'free';
+    const looking = this.hasAttribute('looking');
+    this.#letGo = looking ? 0 : this.#letGo + dt;
+    if (free) {
+      // A free camera keeps its bearing over the ground: as she turns, it does not.
+      this.#yaw -= Math.atan2(
+        Math.sin(boat.heading - this.#headed),
+        Math.cos(boat.heading - this.#headed),
+      );
+      if (under) this.#pitch = Math.min(this.#pitch, 0.3);
+    } else if (!looking && (fear || this.#letGo > LINGER)) {
+      // Swing back gently: slow to start, so it never snaps.
+      const keen = Math.min(1, (this.#letGo - (fear ? 0 : LINGER)) / 1.5);
+      const ease = Math.min(1, dt * (fear ? 1.2 : 0.9) * keen);
       this.#yaw += Math.atan2(Math.sin(restYaw - this.#yaw), Math.cos(restYaw - this.#yaw)) * ease;
       const pitch = under ? CAVE_PITCH : fear ? KRAKEN_PITCH : REST_PITCH;
       this.#pitch += (pitch - this.#pitch) * ease;
     } else if (under) {
       this.#pitch = Math.min(this.#pitch, 0.3);
     }
+    this.#headed = boat.heading;
     const distance = under ? CAVE_DISTANCE : fear ? KRAKEN_DISTANCE : REST_DISTANCE;
     this.#distance += (distance - this.#distance) * Math.min(1, dt * (fear ? 0.7 : 2));
 

@@ -400,12 +400,19 @@
     }
 
     /* The graphics switch, under the instruments. */
-    & .graphics {
-      inline-size: 100%;
+    & .switches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
       margin-block-start: 0.5rem;
     }
 
-    & .graphics[data-loading] {
+    & .switches button {
+      flex: 1 1 auto;
+      white-space: nowrap;
+    }
+
+    & [data-graphics][data-loading] {
       border-style: dashed;
     }
 
@@ -565,9 +572,12 @@
         font-size: 0.75rem;
       }
 
-      & .graphics {
-        inline-size: auto;
+      & .switches {
         margin-block-start: 0.25rem;
+      }
+
+      & .switches button {
+        flex: 0 1 auto;
         font-size: 0.6875rem;
       }
     }

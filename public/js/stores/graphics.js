@@ -11,9 +11,23 @@ import { Store } from '#lib/store.js';
  * @property {Look | null} using what is on screen now
  * @property {boolean} loading the look asked for is still being made ready
  * @property {boolean} choice this machine can draw either, so the switch is worth showing
+ * @property {Camera} camera follow swings back behind the boat once let go; free stays where
+ *   it was dragged, however she turns. Remembered between visits.
+ *
+ * @typedef {'follow' | 'free'} Camera
  */
 
 const KEY = 'philosophers-voyage:graphics';
+const CAMERA_KEY = 'philosophers-voyage:camera';
+
+/** @returns {Camera} */
+function rememberedCamera() {
+  try {
+    return localStorage.getItem(CAMERA_KEY) === 'free' ? 'free' : 'follow';
+  } catch {
+    return 'follow';
+  }
+}
 
 /** @returns {Look | null} */
 function remembered() {
@@ -26,12 +40,19 @@ function remembered() {
 }
 
 /**
- * How the sea is drawn. voyage-hud asks; voyage-sea answers with what it shows.
+ * How the sea is drawn and looked at. voyage-hud asks; voyage-sea answers with what it shows.
  * @extends {Store<GraphicsState>}
  */
 export class GraphicsStore extends Store {
   constructor() {
-    super({ wish: remembered(), asks: 0, using: null, loading: false, choice: false });
+    super({
+      wish: remembered(),
+      asks: 0,
+      using: null,
+      loading: false,
+      choice: false,
+      camera: rememberedCamera(),
+    });
   }
 
   /** The captain wants this look. @param {Look} wish */
@@ -43,6 +64,17 @@ export class GraphicsStore extends Store {
     }
     const loading = this.state.loading || wish !== this.state.using;
     this.commit({ ...this.state, wish, loading, asks: this.state.asks + 1 });
+  }
+
+  /** How the camera behaves once let go. @param {Camera} camera */
+  frame(camera) {
+    if (camera === this.state.camera) return;
+    try {
+      localStorage.setItem(CAMERA_KEY, camera);
+    } catch {
+      // Private browsing: the choice lasts the visit.
+    }
+    this.commit({ ...this.state, camera });
   }
 
   /**
