@@ -1,6 +1,6 @@
-// Which renderer draws the sea. Triangles (mesh/) run anywhere and start at once, so they always
-// go first. Where the browser draws on a real graphics card, the ray-marched sea (renderer.js) is
-// compiled in the background and takes over when it is ready; if its frames then run slow, the
+// Which renderer draws the sea. Triangles (mesh/) run anywhere and start at once, so they are the
+// rule. Asked to try (`?try`), and where the browser draws on a real graphics card, the ray-marched
+// sea (renderer.js) is compiled in the background and takes over when it is ready; if its frames then run slow, the
 // triangles come back for good. Each renderer has a canvas of its own (a canvas has one context),
 // and only the one in use is shown.
 
@@ -35,8 +35,8 @@ export function hasGpu(gl) {
  * @param {HTMLCanvasElement} fast the canvas for the mesh renderer
  * @param {HTMLCanvasElement} fine the canvas for the ray-marched renderer
  * @param {RenderTerrain} terrain
- * @param {'auto' | 'fast' | 'fine' | 'try'} [mode] auto tries the fine renderer on a graphics card;
- *   try does so whatever the machine, fast and fine insist on one
+ * @param {'auto' | 'fast' | 'fine' | 'try'} [mode] auto and fast draw triangles; try starts on
+ *   triangles and moves to the fine renderer on a graphics card if it keeps up; fine insists on it
  * @returns {Renderer | null}
  */
 export function createAutoRenderer(fast, fine, terrain, mode = 'auto') {
@@ -47,7 +47,10 @@ export function createAutoRenderer(fast, fine, terrain, mode = 'auto') {
   fine.hidden = true;
   const mesh = createMeshRenderer(fast, terrain);
   const gl = fast.getContext('webgl2');
-  if (!mesh || mode === 'fast' || !gl || (mode === 'auto' && !hasGpu(gl))) return mesh;
+  // Only on request: compiling the ray-marched sea froze the whole browser for a long while on a
+  // machine with a graphics card (its driver compiles on the thread everything else waits for),
+  // so it is no longer tried unasked.
+  if (!mesh || mode !== 'try' || !gl || !hasGpu(gl)) return mesh;
 
   /** @type {Renderer | null} */
   let candidate = null;

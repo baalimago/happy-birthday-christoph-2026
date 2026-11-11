@@ -361,7 +361,6 @@ function upload(gl, unit, size, pairs, filter) {
  * @param {ReturnType<typeof topsOf>} top
  */
 function launch(gl, terrain, top) {
-  const sea = build(gl);
   const { n, heights, forest } = terrain;
   const step = terrain.extent / n;
   const pairs = new Float32Array(n * n * 2);
@@ -378,6 +377,9 @@ function launch(gl, terrain, top) {
   }
   const land = upload(gl, 0, n, pairs, gl.LINEAR);
   const tops = upload(gl, 1, top.size, top.tops, gl.NEAREST);
+  // The shaders last: an upload asks the driver for errors, which waits for all it was given
+  // before, and the compile is long.
+  const sea = build(gl);
   return { ...sea, land, tops };
 }
 
