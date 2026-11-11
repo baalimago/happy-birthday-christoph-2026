@@ -95,8 +95,10 @@ function marksOf(terrain) {
  *
  * The boat heaves to (the clock stops) while a card or the chart is open.
  *
- * Reflects `sinking` while a holed boat goes down, `loading` (`chart`, then `rig`) until the first frame is drawn, `live` while the sea is drawn, `data-view` for the current view, and `looking`
- * while the camera is being dragged.
+ * Reflects `sinking` while a holed boat goes down; `loading` until the first frame is drawn
+ * (`wait`, set by the page while the birthday paper is still on, then `chart`, then `rig`); `live`
+ * while the sea is drawn; `data-view` for the current view; and `looking` while the camera is
+ * being dragged.
  */
 export class VoyageSea extends HTMLElement {
   /** @type {AbortController | undefined} */
@@ -149,7 +151,10 @@ export class VoyageSea extends HTMLElement {
     fine.setAttribute('aria-hidden', 'true');
     // Ask for the context before charting the sea: without WebGL 2 there is no need to.
     // (On a canvas of its own: the first request fixes a context's settings.)
-    if (!document.createElement('canvas').getContext('webgl2')) return;
+    if (!document.createElement('canvas').getContext('webgl2')) {
+      this.removeAttribute('loading'); // the page may have put the backdrop up already
+      return;
+    }
     // Charting the sea and compiling its shaders take a moment: say so first, and let that paint.
     this.setAttribute('loading', 'chart');
     Promise.race([

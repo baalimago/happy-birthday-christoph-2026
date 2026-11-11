@@ -22,4 +22,8 @@ lazyDefine('voyage-chart', () => import('#components/voyage-chart/voyage-chart.j
 lazyDefine('voyage-reading', () => import('#components/voyage-reading/voyage-reading.js'));
 lazyDefine('voyage-log', () => import('#components/voyage-log/voyage-log.js'));
 
-if (!present.current) launch();
+if (present.current) {
+  // Under the paper lies the greeting on its backdrop, not the logbook: tearing shows that, and
+  // the loading bar starts to move once the paper is off.
+  document.querySelector('voyage-sea')?.setAttribute('loading', 'wait');
+} else launch();

@@ -40,7 +40,7 @@
     &[loading] > .loading {
       position: fixed;
       inset: 0;
-      z-index: 2147483600; /* over everything, the birthday paper included */
+      z-index: 2147482000; /* over everything but the birthday paper, which tears off to show it */
       display: grid;
       place-items: center;
       padding: 1rem;
@@ -74,6 +74,7 @@
       }
     }
 
+    &[loading='wait'] [data-step='rig'],
     &[loading='chart'] [data-step='rig'],
     &[loading='rig'] [data-step='chart'] {
       display: none;
