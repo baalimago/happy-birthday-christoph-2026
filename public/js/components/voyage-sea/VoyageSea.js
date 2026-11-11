@@ -3,7 +3,7 @@ import { createFauna } from '#game/fauna.js';
 import { bearingTo, damageFor, newBoat, sail, windAt } from '#game/sailing.js';
 import { getTerrain, heightAt, insideCave, isWater } from '#game/terrain.js';
 import { takeHelm } from '#input/helm.js';
-import { createRenderer } from '#render/renderer.js';
+import { createAutoRenderer } from '#render/auto.js';
 import { VIEWS } from '#render/views.js';
 import { passage } from '#stores/passage.js';
 import { voyage } from '#stores/voyage.js';
@@ -93,14 +93,14 @@ function marksOf(terrain) {
  *
  * The boat heaves to (the clock stops) while a card or the chart is open.
  *
- * Reflects `live` while the sea is drawn, `data-view` for the current view, and `looking`
+ * Reflects `loading` (`chart`, then `rig`) until the first frame is drawn, `live` while the sea is drawn, `data-view` for the current view, and `looking`
  * while the camera is being dragged.
  */
 export class VoyageSea extends HTMLElement {
   /** @type {AbortController | undefined} */
   #abort;
-  /** @type {HTMLCanvasElement | undefined} */
-  #canvas;
+  /** @type {HTMLCanvasElement[]} */
+  #canvases = [];
   /** @type {import('#render/renderer.js').Renderer | null} */
   #renderer = null;
   /** @type {Terrain | undefined} */
@@ -137,24 +137,54 @@ export class VoyageSea extends HTMLElement {
     this.#abort = new AbortController();
     const { signal } = this.#abort;
 
+    // Two canvases, one per renderer (see render/auto.js); only one of them shows.
     const canvas = document.createElement('canvas');
+    const fine = document.createElement('canvas');
     canvas.setAttribute('aria-hidden', 'true');
+    fine.setAttribute('aria-hidden', 'true');
     // Ask for the context before charting the sea: without WebGL 2 there is no need to.
-    if (!canvas.getContext('webgl2')) return;
+    // (On a canvas of its own: the first request fixes a context's settings.)
+    if (!document.createElement('canvas').getContext('webgl2')) return;
+    // Charting the sea and compiling its shaders take a moment: say so first, and let that paint.
+    this.setAttribute('loading', 'chart');
+    Promise.race([
+      new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve))),
+      new Promise((resolve) => setTimeout(resolve, 250)),
+    ]).then(() => {
+      if (!signal.aborted) this.#embark(canvas, fine, signal);
+    });
+  }
+
+  /**
+   * Chart the sea, start the shaders compiling and take the helm.
+   * @param {HTMLCanvasElement} canvas the fast renderer's
+   * @param {HTMLCanvasElement} fine the fine renderer's
+   * @param {AbortSignal} signal
+   */
+  #embark(canvas, fine, signal) {
     const terrain = getTerrain();
-    this.#renderer = createRenderer(canvas, terrain);
-    if (!this.#renderer) return;
+    // `?fine` and `?fast` in the address insist on one renderer and `?try` tries the fine one
+    // whatever the machine; otherwise the machine decides.
+    const asked = new URLSearchParams(location.search);
+    const mode = /** @type {const} */ (['fine', 'fast', 'try']).find((m) => asked.has(m)) ?? 'auto';
+    this.#renderer = createAutoRenderer(canvas, fine, terrain, mode);
+    if (!this.#renderer) {
+      this.removeAttribute('loading');
+      return;
+    }
+    this.setAttribute('loading', 'rig');
     this.#terrain = terrain;
     this.#marks = marksOf(terrain);
     this.#boat = newBoat(this.#mooring());
-    this.#canvas = canvas;
-    this.prepend(canvas);
+    this.#canvases = [canvas, fine];
+    this.prepend(canvas, fine);
     this.tabIndex = -1;
     this.toggleAttribute('live', true);
     this.#reflectView();
 
     this.#helm = takeHelm(this, signal);
     this.#listenForLooking(canvas, signal);
+    this.#listenForLooking(fine, signal);
     voyage.addEventListener('change', () => this.#onVoyage(), { signal });
 
     const motion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -172,8 +202,7 @@ export class VoyageSea extends HTMLElement {
     canvas.addEventListener(
       'webglcontextrestored',
       () => {
-        this.#renderer = createRenderer(canvas, terrain);
-        this.#run();
+        this.#run(); // the renderer has rebuilt itself
       },
       { signal },
     );
@@ -198,9 +227,20 @@ export class VoyageSea extends HTMLElement {
     this.#stop();
     this.#renderer?.dispose();
     this.#renderer = null;
-    this.#canvas?.remove();
+    for (const canvas of this.#canvases) canvas.remove();
     this.toggleAttribute('live', false);
+    this.removeAttribute('loading');
     passage.arriveAt(null);
+  }
+
+  /** The shaders did not compile: back to the page as it reads without a sea. */
+  #ashore() {
+    this.#stop();
+    this.#renderer?.dispose();
+    this.#renderer = null;
+    for (const canvas of this.#canvases) canvas.remove();
+    this.toggleAttribute('live', false);
+    this.removeAttribute('loading');
   }
 
   /** Where to pick the voyage up: where the boat was last seen, if that is still water. */
@@ -281,9 +321,15 @@ export class VoyageSea extends HTMLElement {
   #frame(now) {
     this.#raf = requestAnimationFrame((next) => this.#frame(next));
     const renderer = this.#renderer;
-    const canvas = this.#canvas;
     const terrain = this.#terrain;
-    if (!renderer || !canvas || !terrain) return;
+    if (!renderer || !terrain) return;
+    // Nothing moves until there is a sea to see.
+    const ready = renderer.ready();
+    if (ready === 'failed') this.#ashore();
+    if (ready !== 'ready') {
+      this.#last = 0;
+      return;
+    }
     const dt = this.#last ? Math.min(0.05, (now - this.#last) / 1000) : 0;
     this.#last = now;
     if (!this.#still) this.#time += dt;
@@ -324,7 +370,7 @@ export class VoyageSea extends HTMLElement {
     this.#distance += (distance - this.#distance) * Math.min(1, dt * (fear ? 0.7 : 2));
 
     // Keep the boat clear of an open card: beside it on wide screens, above it on narrow ones.
-    const wide = canvas.clientWidth >= 900;
+    const wide = innerWidth >= 900;
     const reading = passage.state.reading;
     const wantX = reading && wide ? 0.22 : 0;
     const wantY = reading && !wide ? 0.16 : -0.1;
@@ -354,6 +400,7 @@ export class VoyageSea extends HTMLElement {
       kraken: this.#fauna.kraken,
     };
     renderer.draw(frame);
+    if (this.hasAttribute('loading')) this.removeAttribute('loading');
   }
 
   /**

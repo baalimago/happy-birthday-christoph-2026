@@ -62,6 +62,8 @@ import { RUNS } from './shaders/scene.js';
 
 /**
  * @typedef {object} Renderer
+ * @property {() => 'pending' | 'ready' | 'failed'} ready how the shaders are coming along: they
+ *   compile off the main thread where the browser can, and nothing is drawn until they are ready
  * @property {(frame: Frame) => void} draw
  * @property {() => void} dispose
  */
@@ -156,6 +158,15 @@ const UNIFORMS = /** @type {const} */ ([
 /** @typedef {Record<typeof UNIFORMS[number], WebGLUniformLocation | null>} Locations */
 
 /**
+ * @typedef {object} Sea the program and what it needs
+ * @property {WebGLProgram} program
+ * @property {WebGLShader[]} shaders kept until the link is known, for their logs
+ * @property {WebGLVertexArrayObject | null} vao
+ * @property {Locations | null} at the uniforms, once the program has linked
+ * @property {boolean} failed
+ */
+
+/**
  * @param {WebGL2RenderingContext} gl
  * @param {number} type
  * @param {string} source
@@ -166,39 +177,62 @@ function compile(gl, type, source) {
   if (!shader) throw new Error('no shader object');
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS) && !gl.isContextLost()) {
-    const log = gl.getShaderInfoLog(shader) ?? '';
-    gl.deleteShader(shader);
-    throw new Error(`shader does not compile: ${log}`);
-  }
   return shader;
 }
 
 /**
- * Compile and link the sea. Throws with the driver's log when it cannot.
+ * Start compiling and linking the sea. Nothing here asks how it went: asking would wait for the
+ * driver, and the shaders are long. `settle` asks, once the driver says it has finished.
  * @param {WebGL2RenderingContext} gl
- * @returns {{ program: WebGLProgram, vao: WebGLVertexArrayObject | null, at: Locations }}
+ * @returns {Sea}
  */
 function build(gl) {
   const program = gl.createProgram();
   if (!program) throw new Error('no program object');
-  const vertex = compile(gl, gl.VERTEX_SHADER, VERTEX);
-  const fragment = compile(gl, gl.FRAGMENT_SHADER, FRAGMENT);
-  gl.attachShader(program, vertex);
-  gl.attachShader(program, fragment);
+  const shaders = [
+    compile(gl, gl.VERTEX_SHADER, VERTEX),
+    compile(gl, gl.FRAGMENT_SHADER, FRAGMENT),
+  ];
+  for (const shader of shaders) gl.attachShader(program, shader);
   gl.linkProgram(program);
-  gl.deleteShader(vertex);
-  gl.deleteShader(fragment);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS) && !gl.isContextLost()) {
-    const log = gl.getProgramInfoLog(program) ?? '';
-    gl.deleteProgram(program);
-    throw new Error(`program does not link: ${log}`);
-  }
-  const at = /** @type {Locations} */ (
-    Object.fromEntries(UNIFORMS.map((name) => [name, gl.getUniformLocation(program, name)]))
-  );
+  gl.flush(); // hand the work to the driver now
   // The triangle comes from gl_VertexID, but a vertex array must still be bound.
-  return { program, vao: gl.createVertexArray(), at };
+  return { program, shaders, vao: gl.createVertexArray(), at: null, failed: false };
+}
+
+/**
+ * See whether the sea has linked, without waiting where the browser can tell us
+ * (KHR_parallel_shader_compile). Elsewhere the first call waits for the driver.
+ * @param {WebGL2RenderingContext} gl
+ * @param {Sea} sea
+ * @returns {'pending' | 'ready' | 'failed'}
+ */
+function settle(gl, sea) {
+  if (sea.failed) return 'failed';
+  if (sea.at) return 'ready';
+  if (gl.isContextLost()) return 'pending';
+  const parallel = gl.getExtension('KHR_parallel_shader_compile');
+  if (parallel && !gl.getProgramParameter(sea.program, parallel.COMPLETION_STATUS_KHR)) {
+    return 'pending';
+  }
+  const linked = gl.getProgramParameter(sea.program, gl.LINK_STATUS);
+  if (!linked && gl.isContextLost()) return 'pending';
+  if (!linked) {
+    const logs = [
+      ...sea.shaders.map((shader) => gl.getShaderInfoLog(shader)),
+      gl.getProgramInfoLog(sea.program),
+    ];
+    console.warn('The sea could not be drawn.', logs.filter(Boolean).join('\n'));
+    sea.failed = true;
+  } else {
+    const { program } = sea;
+    sea.at = /** @type {Locations} */ (
+      Object.fromEntries(UNIFORMS.map((name) => [name, gl.getUniformLocation(program, name)]))
+    );
+  }
+  for (const shader of sea.shaders) gl.deleteShader(shader);
+  sea.shaders = [];
+  return sea.failed ? 'failed' : 'ready';
 }
 
 /**
@@ -321,7 +355,7 @@ function upload(gl, unit, size, pairs, filter) {
 }
 
 /**
- * Compile the sea and upload the world. Throws when it cannot.
+ * Start compiling the sea and upload the world. Throws when it cannot.
  * @param {WebGL2RenderingContext} gl
  * @param {RenderTerrain} terrain
  * @param {ReturnType<typeof topsOf>} top
@@ -350,7 +384,8 @@ function launch(gl, terrain, top) {
 /**
  * @param {HTMLCanvasElement} canvas
  * @param {RenderTerrain} terrain the world; its height grid is uploaded once
- * @returns {Renderer | null} null when WebGL 2, the shaders or the terrain texture are unavailable
+ * @returns {Renderer | null} null when WebGL 2 or the terrain texture are unavailable; shaders
+ *   that do not compile show later, as `ready()` turning 'failed'
  */
 export function createRenderer(canvas, terrain) {
   const gl = canvas.getContext('webgl2', {
@@ -467,8 +502,12 @@ export function createRenderer(canvas, terrain) {
   }
 
   return {
+    ready() {
+      return sea ? settle(gl, sea) : 'pending';
+    },
+
     draw(frame) {
-      if (!sea || gl.isContextLost()) return;
+      if (!sea || gl.isContextLost() || settle(gl, sea) !== 'ready') return;
       adapt(frame.dt);
       resize();
 
@@ -505,6 +544,7 @@ export function createRenderer(canvas, terrain) {
       );
 
       const { at } = sea;
+      if (!at) return;
       const { cave, volcano } = terrain;
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.useProgram(sea.program);

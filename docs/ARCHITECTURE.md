@@ -272,3 +272,26 @@ inside `<voyage-chart>`.
   wide screens, between the thumbs on small ones.
 - **Hove to.** `<voyage-sea>` stops the boat and the wind clock while a card or the chart is open; the
   instruments keep reading.
+
+## Fast renderer (`js/render/mesh/`), 2026-11-11
+
+Lorentz: "It didn't even start for me", "let's aim for 60fps on CPU". Measured in software GL, the ray-marched
+renderer took 58 s to its first frame and about 3 s per frame; ray marching every pixel cannot be made fifty times
+cheaper. So the world is also drawn as triangles, and that is now the default:
+
+- `<voyage-sea>` picks the renderer: `createMeshRenderer` (`js/render/mesh/renderer.js`) by default,
+  `createRenderer` (`js/render/renderer.js`, the ray-marched one) when the address has `?fine`. Both take
+  `(canvas, terrain)` and return the same `Renderer`: `{ ready(), draw(frame), dispose() }`.
+- `ready()` is `'pending' | 'ready' | 'failed'`. Programs are compiled without asking for their status
+  (`KHR_parallel_shader_compile` where the browser has it), so the page never stalls on a compile. Until it is
+  ready the loop draws nothing and the clock does not run; on `'failed'` the element goes ashore.
+- `<voyage-sea loading="chart|rig">` from the moment it wakes until its first frame is drawn; the
+  `p.loading` inside it is the loading bar (`voyage-sea.css`).
+- Mesh renderer layout: `renderer.js` owns the context, canvas size (resolution falls until frames take under
+  21 ms, down to a quarter) and the per-frame `Scene`; `camera.js` is the same orbit as the ray-marched camera,
+  as a matrix; `look.js` has the colours of day and dusk and the GLSL every part shares (`COMMON`: uniforms,
+  `lit`, `hazeAt`; `FINISH`: haze and the four views as grades of one scene); `gl.js` has programs and meshes.
+- Each visible thing is a part in `mesh/parts/` (`createX(kit) -> { draw(scene), dispose() }`), listed in draw
+  order in `parts/index.js`. Parts do not know about each other. Lighting is per vertex and fragment shaders are
+  a few operations, because in software GL every pixel is shaded on the CPU.
+- World frame: x east, y up, z north. A triangle faces the way `cross(b - a, c - a)` points.

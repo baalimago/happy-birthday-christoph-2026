@@ -58,6 +58,27 @@
 <link rel="modulepreload" href="/js/input/helm.js">
 <link rel="modulepreload" href="/js/lib/lazy-define.js">
 <link rel="modulepreload" href="/js/lib/store.js">
+<link rel="modulepreload" href="/js/render/auto.js">
+<link rel="modulepreload" href="/js/render/mesh/camera.js">
+<link rel="modulepreload" href="/js/render/mesh/cave-light.js">
+<link rel="modulepreload" href="/js/render/mesh/cave-shape.js">
+<link rel="modulepreload" href="/js/render/mesh/gl.js">
+<link rel="modulepreload" href="/js/render/mesh/heights.js">
+<link rel="modulepreload" href="/js/render/mesh/look.js">
+<link rel="modulepreload" href="/js/render/mesh/lowpoly.js">
+<link rel="modulepreload" href="/js/render/mesh/parts/boat.js">
+<link rel="modulepreload" href="/js/render/mesh/parts/cave.js">
+<link rel="modulepreload" href="/js/render/mesh/parts/creatures.js">
+<link rel="modulepreload" href="/js/render/mesh/parts/index.js">
+<link rel="modulepreload" href="/js/render/mesh/parts/ports.js">
+<link rel="modulepreload" href="/js/render/mesh/parts/sea.js">
+<link rel="modulepreload" href="/js/render/mesh/parts/sky.js">
+<link rel="modulepreload" href="/js/render/mesh/parts/terrain.js">
+<link rel="modulepreload" href="/js/render/mesh/parts/trees.js">
+<link rel="modulepreload" href="/js/render/mesh/parts/volcano.js">
+<link rel="modulepreload" href="/js/render/mesh/renderer.js">
+<link rel="modulepreload" href="/js/render/mesh/solids.js">
+<link rel="modulepreload" href="/js/render/mesh/variants.js">
 <link rel="modulepreload" href="/js/render/renderer.js">
 <link rel="modulepreload" href="/js/render/shaders/chart.js">
 <link rel="modulepreload" href="/js/render/shaders/creatures.js">
@@ -89,6 +110,11 @@
 <a class="skip-link" href="#main">Skip to the logbook</a>
 <main id="main" tabindex="-1">
 <voyage-sea>
+  <p class="loading" role="status">
+    <span data-step="chart">Charting the waters…</span>
+    <span data-step="rig">Rigging the boat…</span>
+    <span class="bar" aria-hidden="true"></span>
+  </p>
   <voyage-log>
     <p class="visually-hidden" role="status" data-status></p>
     <section class="card intro" data-card="intro">

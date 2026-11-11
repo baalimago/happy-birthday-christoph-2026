@@ -18,5 +18,60 @@
     &:focus {
       outline: none;
     }
+
+    /* Shown from the moment the element wakes until the first frame is on the canvas. */
+    & > .loading {
+      display: none;
+    }
+
+    &[loading] > .loading {
+      position: fixed;
+      inset-inline: 0;
+      inset-block-end: 12vh;
+      z-index: 6;
+      display: grid;
+      gap: 0.5rem;
+      inline-size: min(20rem, 80vw);
+      margin-inline: auto;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--card-fg);
+      border-radius: 2px;
+      background: var(--card-bg);
+      color: var(--card-fg);
+      font-family: var(--font-text);
+      font-style: italic;
+      text-align: center;
+    }
+
+    &[loading='chart'] [data-step='rig'],
+    &[loading='rig'] [data-step='chart'] {
+      display: none;
+    }
+
+    & .bar {
+      display: block;
+      block-size: 0.375rem;
+      border: 1px solid currentcolor;
+      overflow: hidden;
+
+      &::before {
+        content: '';
+        display: block;
+        block-size: 100%;
+        inline-size: 15%;
+        background: currentcolor;
+        transition: inline-size 12s cubic-bezier(0.1, 0.7, 0.2, 1);
+      }
+    }
+
+    &[loading='rig'] .bar::before {
+      inline-size: 95%;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      & .bar::before {
+        transition: none;
+      }
+    }
   }
 }

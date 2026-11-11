@@ -92,7 +92,7 @@ test('the page loads as a game: a canvas, the HUD, the splash open, one view to 
   await board(page);
   const sea = page.locator('voyage-sea');
   await expect(sea).toHaveAttribute('data-view', 'poster');
-  await expect(sea.locator(':scope > canvas[aria-hidden="true"]')).toHaveCount(1);
+  await expect(sea.locator(':scope > canvas[aria-hidden="true"]:not([hidden])')).toHaveCount(1);
   await expect(page.locator('h1')).toHaveCount(1);
 
   await expect(page.locator('voyage-log [data-card][data-open]')).toHaveAttribute(
