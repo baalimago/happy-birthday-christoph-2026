@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="/css/utilities.css">
 <link rel="stylesheet" href="/js/components/voyage-sea/voyage-sea.css">
 <link rel="stylesheet" href="/js/components/voyage-hud/voyage-hud.css">
+<link rel="stylesheet" href="/js/components/voyage-chart/voyage-chart.css">
 <link rel="stylesheet" href="/js/components/voyage-log/voyage-log.css">
 <script type="importmap">
 {
@@ -266,13 +267,54 @@
           <span class="bar"><span data-trim-bar></span></span>
         </div>
         <div class="gauge hull">
-          <p><span class="label">Hull</span> <span data-hull>100</span>% <span class="low" data-hull-low hidden><svg viewBox="0 0 12 12" width="12" height="12" focusable="false"><path d="M6 1 11.5 11H.5Z"/><path class="bang" d="M6 4.6V7.6M6 9.1V9.2"/></svg> low</span></p>
+          <p><span class="label">Hull</span> <span data-hull>100</span>% <span class="low" data-hull-low hidden><svg viewBox="0 0 12 12" width="12" height="12" focusable="false"><path d="M6 1 11.5 11H.5Z"/><path class="bang" d="M6 4.6V7.6M6 9.1V9.2"/></svg><span class="roomy"> low</span></span></p>
           <span class="bar"><span data-hull-bar></span></span>
         </div>
         <p class="irons" data-irons-note hidden>In irons: bear away or start the engine</p>
       </div>
     </div>
   </voyage-hud>
+  <voyage-chart>
+    <button type="button" data-chart-toggle aria-haspopup="dialog" aria-expanded="false" aria-keyshortcuts="M">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" focusable="false"><path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20Z"/><path d="M9 4v13.5M15 6.5V20"/></svg>
+      <span>Chart</span>
+      <kbd aria-hidden="true">M</kbd>
+    </button>
+    <dialog aria-labelledby="chart-title">
+      <header>
+        <h2 id="chart-title">A Chart of the Philosopher's Sea</h2>
+        <div class="zoom" role="group" aria-label="Zoom">
+          <button type="button" data-chart-zoom="out" aria-label="Zoom out">
+            <svg aria-hidden="true" viewBox="0 0 16 16" focusable="false"><path d="M3 8h10"/></svg>
+          </button>
+          <button type="button" data-chart-zoom="in" aria-label="Zoom in">
+            <svg aria-hidden="true" viewBox="0 0 16 16" focusable="false"><path d="M3 8h10M8 3v10"/></svg>
+          </button>
+        </div>
+        <form method="dialog">
+          <button type="submit" aria-label="Roll up the chart">
+            <svg aria-hidden="true" viewBox="0 0 16 16" focusable="false"><path d="m3.5 3.5 9 9m0-9-9 9"/></svg>
+          </button>
+        </form>
+      </header>
+      <div data-chart-sheet role="group" aria-label="The chart. Scroll to move about it." tabindex="0" autofocus>
+        <canvas width="1200" height="1200" aria-hidden="true"></canvas>
+      </div>
+      <p class="legend">North is up. Nothing is marked on it: find yourself by compass and coastline.</p>
+      <div class="visually-hidden">
+        <h3>Places on the chart</h3>
+        <p>The mainland, <span lang="de">Österreich am Meer</span>, fills the south, with the home harbour in a bay at the middle of its coast. Seaward of it, from south to north:</p>
+        <ul>
+          <li>In the south: Lifetime Atoll in the west, Ferris Island, Cargo Cay, and Crate Island in the east.</li>
+          <li>Further out: Juniper Isle in the west, Borrow Checker Bank (a reef), QuickJS Reef and Unsafe Rocks (a reef) in the east.</li>
+          <li>Across the middle: Query Rock in the far west, Tokio Shoals (a reef), Wasm Holm, Mount Panic (a volcano) at the centre, Trait Holm in the far east.</li>
+          <li>North of the middle: Edge Harbour and Deadlock Ledge (a reef) in the west, <span lang="de">Schattenfels</span> (a rock with cliffs), Async Isle, Unwrap Rocks (a reef) in the east.</li>
+          <li>In the north: Macro Island, Segfault Shallows (a reef), Null Skerries (a reef) and Dioxus Bay in the east.</li>
+          <li>Along the northern edge: Melange Island in the west, <span lang="de">Geburtstagsstrand</span>, Closure Cay and Veltliner Holm in the east.</li>
+        </ul>
+      </div>
+    </dialog>
+  </voyage-chart>
   <div class="helm" role="group" aria-label="Helm">
     <button type="button" data-helm="left" aria-label="Turn to port">
       <svg aria-hidden="true" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v6"/></svg>

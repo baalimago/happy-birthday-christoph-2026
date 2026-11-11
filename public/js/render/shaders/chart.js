@@ -41,25 +41,48 @@ vec3 shade_chart(float id, vec3 p, vec3 n, vec3 rd, vec3 q, float t, vec2 fc, fl
   float ink = 0.0;
   vec3 tint = C_INK;
   if (id < 1.5) {
-    vec2 w = W(p); float s = sea(w);
-    vec3 mk = seaMarks(p, w, t);
-    float v = w.y*2.6 + s*7.0 + 0.4*sin(w.x*1.7);
+    float s = sea(p.xz);
+    vec4 mk = seaMarks(p, t);
+    float v = dot(p.xz - uPos, uWind.xy)*2.6 + s*7.0 + 0.4*sin(dot(p.xz, vec2(-uWind.y, uWind.x))*1.7);
     ink = lineAt(v, fwidth(v))*0.85*exp(-t*0.03);
-    if (mk.z > -0.22) {
-      float stipple = step(0.55, hash(floor(fc/(2.5*k))));
-      ink = max(ink, stipple*smoothstep(-0.22, -0.05, mk.z));
+    if (mk.w > 0.5) {
+      // in the cave: dark water, cross-hatched, thinning where the lamp reaches
+      vec2 cl = caveLight(p, n);
+      ink = max(ink, inkFromLum(0.1 + cl.x*0.5 + cl.y*1.6, fc, k));
+      if (mk.z > -0.07) ink = 1.0;
+    } else {
+      // shoals and the water by the shore are stippled
+      float shallow = max(smoothstep(-0.22, -0.05, mk.z), mk.x*0.55);
+      if (shallow > 0.0) ink = max(ink, step(1.0 - 0.45*shallow, hash(floor(fc/(2.5*k)))));
+      if (mk.z > -0.035) ink = 1.0;
+      ink = max(ink, inkFromLum(0.55 + df*0.6, fc, k)*0.5*exp(-t*0.08));
     }
-    if (mk.z > -0.035 || mk.y > 0.5) ink = 1.0;
-    ink = max(ink, inkFromLum(0.55 + df*0.6, fc, k)*0.5*exp(-t*0.08));
-    if (mk.x > 0.5) { ink = 1.0; tint = C_RED; }
+    if (mk.y > 0.5) ink = 1.0;
   } else if (id < 2.5) {
+    vec4 lm = landMarks(p, t);
     ink = inkFromLum(0.12 + df*0.95, fc, k);
     if (edge < 0.22) ink = 1.0;
+    if (lm.x > 0.0) {
+      // woods: each fir an outline, its shaded side hatched upright
+      ink = df < 0.2 ? hatch(fc, 1.57, 3.5*k) : 0.0;
+      if (edge < 0.34 || lm.x < 0.56) ink = 1.0;
+      if (lodAt(t) > 0.5) ink = max(ink, hatch(fc, 1.57, 4.0*k)*0.8);
+    }
+    if (lm.y > 0.5) { ink = 0.45 + 0.55*step(0.5, fract(lm.w)); tint = C_RED; }
   } else if (id > 9.5) {
     vec4 lm = lightMarks(id, p);
     ink = lm.x > 0.5 ? 0.0 : 1.0;
     if (edge < 0.3) ink = 1.0;
     if (lm.w > 0.5) { ink = 1.0; if (lm.y > 0.5) tint = C_RED; }
+  } else if (id > 8.5) {
+    // the plume: engraved puffs, an outline and a stipple on the shaded side, red at the root
+    ink = edge < 0.3 ? 1.0 : step(0.62 + 0.3*df, hash(floor(fc/(2.0*k))));
+    if (q.x < 0.14) tint = C_RED;
+  } else if (id > 7.5) {
+    vec2 cl = caveLight(p, n);
+    ink = max(inkFromLum(0.05 + cl.x*0.45 + cl.y*2.0, fc, k), 0.25);
+    if (cl.y > 0.3) tint = C_RED;
+    if (t < 0.05) ink = 1.0;
   } else if (id < 3.5) {
     ink = inkFromLum(0.2 + df*0.3, fc, k);
     if (q.y > 0.13 && q.y < 0.2) ink = 0.0;
@@ -75,7 +98,7 @@ vec3 shade_chart(float id, vec3 p, vec3 n, vec3 rd, vec3 q, float t, vec2 fc, fl
   }
   vec3 c = mix(C_PAPER, tint, clamp(ink, 0.0, 1.0)*0.92);
   if (id > 5.5 && id < 6.5) c = mix(c, C_RED, 0.25);
-  return mix(c, C_PAPER, smoothstep(30.0, 70.0, t));
+  return mix(c, C_PAPER, haze(t)*0.8);
 }
 vec3 post_chart(vec3 col, vec3 rd, vec2 fc, float k){
   col *= 0.95 + 0.07*noise(fc*0.35/k);

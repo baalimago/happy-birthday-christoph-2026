@@ -144,6 +144,7 @@
 
     & .gauge p {
       margin: 0;
+      white-space: nowrap;
     }
 
     & .compass {
@@ -297,7 +298,7 @@
     & .trim,
     & .hull {
       display: grid;
-      grid-template-columns: 6.5rem 1fr;
+      grid-template-columns: 8.75rem 1fr;
       align-items: center;
       gap: 0.5rem;
     }
@@ -460,11 +461,11 @@
         grid-template:
           'compass wind speed hull' auto
           'compass wind speed trim' auto
-          'irons irons irons irons' auto / auto auto minmax(3.5rem, 1fr) minmax(4.75rem, 1.3fr);
+          'irons irons irons irons' auto / auto auto max-content minmax(0, 1fr);
         align-items: center;
         gap: 0.1rem 0.5rem;
         padding-inline-end: var(--chart-slot);
-        font-size: 0.75rem;
+        font-size: 0.6875rem;
         line-height: 1.2;
       }
 
@@ -499,8 +500,9 @@
 
       & .trim,
       & .hull {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
         gap: 0.1rem;
+        overflow: hidden;
       }
 
       & .hull {
@@ -520,7 +522,7 @@
       }
 
       & .irons {
-        padding-inline-end: 0;
+        font-size: 0.75rem;
       }
     }
   }
