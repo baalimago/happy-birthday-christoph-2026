@@ -56,6 +56,9 @@ export function startSoundscape(signal, opts = {}) {
   let interval = 0;
   let snapshot = take();
   let foundAt = -Infinity;
+  let winchAt = -Infinity;
+  let anchorAt = -Infinity;
+  let pendingFound = 0;
   let nextGull = 0;
   let nextCreak = 0;
 
@@ -139,11 +142,49 @@ export function startSoundscape(signal, opts = {}) {
     if (muted) return;
     const t = graph.ctx.currentTime + 0.03;
     for (const cue of fired) {
-      if (cue === 'found') foundAt = t;
       if (cue === 'arrive' && t - foundAt < 3) continue; // the new-port bells already rang
+      if (cue === 'winch') {
+        if (t - winchAt < 0.18) continue; // a held key moves the sheet every frame
+        winchAt = t;
+      }
+      if (cue === 'anchor') anchorAt = t;
+      if (cue === 'found') {
+        // Wait a beat: if this port completes a goal, the clock tower rings instead of the bells.
+        foundAt = t;
+        window.clearTimeout(pendingFound);
+        pendingFound = window.setTimeout(() => ring('found'), 150);
+        continue;
+      }
       play(graph.ctx, graph.cues, graph.white, cue, t);
     }
   }
+
+  /** @param {import('./mix.js').Cue} cue @param {number} [delay] seconds from now */
+  function ring(cue, delay = 0) {
+    if (!graph || muted) return;
+    play(graph.ctx, graph.cues, graph.white, cue, graph.ctx.currentTime + 0.03 + delay);
+  }
+
+  // Goals: the HUD marks each `[data-goal]` with `data-done` (docs/ARCHITECTURE.md). A goal newly
+  // done rings the clock tower; the last one rings the grand peal. Goals already done when the page
+  // loads, or done before the first gesture, stay quiet.
+  const goals = () => [...root.querySelectorAll('[data-goal]')];
+  /** @param {Element} el */
+  const isDone = (el) => el.hasAttribute('data-done');
+  let doneBefore = new Set(goals().filter(isDone));
+  const watcher = new MutationObserver((records) => {
+    const fresh = records.some(
+      (r) => r.target instanceof Element && isDone(r.target) && !doneBefore.has(r.target),
+    );
+    const all = goals();
+    doneBefore = new Set(all.filter(isDone));
+    if (!fresh || !graph) return;
+    window.clearTimeout(pendingFound);
+    const now = graph.ctx.currentTime;
+    const wait = Math.max(0, anchorAt + 1.6 - now); // let the anchor chain finish first
+    ring(all.every(isDone) ? 'finale' : 'goal', wait);
+  });
+  watcher.observe(root, { subtree: true, attributes: true, attributeFilter: ['data-done'] });
 
   /** Scatter the occasional gull and creak. Called 4 times a second (or by a preview). */
   function tick() {
@@ -234,6 +275,8 @@ export function startSoundscape(signal, opts = {}) {
     'abort',
     () => {
       window.clearInterval(interval);
+      window.clearTimeout(pendingFound);
+      watcher.disconnect();
       const ctx = graph?.ctx;
       graph = null;
       if (ctx instanceof AudioContext && !given) ctx.close().catch(() => {});

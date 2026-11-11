@@ -92,3 +92,33 @@ test('cues: notices fire once, on the change', () => {
   assert.deepEqual(cues(at(''), at('edge')), ['edge']);
   assert.deepEqual(cues(at('edge'), at('')), []);
 });
+
+const step = (a, b, va = {}, vb = va) =>
+  cues({ passage: { log: log(a) }, voyage: va }, { passage: { log: log(b) }, voyage: vb });
+
+test('cues: the engine starts and stops', () => {
+  assert.deepEqual(step({}, { engine: true }), ['engineOn']);
+  assert.deepEqual(step({ engine: true }, {}), ['engineOff']);
+});
+
+test('cues: a sail fills, but not under engine', () => {
+  assert.deepEqual(step({ trim: 0.2 }, { trim: 0.9 }), ['fill']);
+  assert.deepEqual(step({ trim: 0.6 }, { trim: 0.9 }), []);
+  assert.deepEqual(step({ trim: 0.2, engine: true }, { trim: 0.9, engine: true }), []);
+});
+
+test('cues: through the wind is a tack, across the stern a gybe', () => {
+  assert.deepEqual(step({ relative: 0.2 }, { relative: -0.2 }), ['tack']);
+  assert.deepEqual(step({ relative: 3.0 }, { relative: -3.0 }), ['gybe']);
+  assert.deepEqual(step({ relative: 0.5 }, { relative: 0.7 }), []);
+});
+
+test('cues: trimming the sheet clicks the winch', () => {
+  assert.deepEqual(step({ sheet: 0.5 }, { sheet: 0.55 }), ['winch']);
+  assert.deepEqual(step({ sheet: 0.5 }, { sheet: 0.51 }), []);
+});
+
+test('cues: weighing anchor', () => {
+  assert.deepEqual(step({}, {}, { sailed: false }, { sailed: true }), ['anchor']);
+  assert.deepEqual(step({}, {}, { sailed: true }, { sailed: true }), []);
+});

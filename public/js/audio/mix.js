@@ -8,14 +8,16 @@
  * }} Log
  *   the boat's log as voyage-sea writes it; `land` (0 far .. 1 on the beach) is optional
  * @typedef {{ log?: Log | null, near?: string | null, notice?: string, reading?: boolean, chart?: boolean }} Passage
- * @typedef {{ found?: readonly string[], hull?: number }} Voyage
+ * @typedef {{ found?: readonly string[], hull?: number, sailed?: boolean }} Voyage
  * @typedef {{
  *   sea: number, seaTone: number, wash: number, washTone: number, wind: number, windTone: number,
  *   whistle: number, luff: number, engine: number, enginePitch: number, gulls: number, creak: number,
  *   duck: number
  * }} Levels
  *   gains are 0..1 (soundscape.js scales them), tones and pitches in Hz
- * @typedef {'found' | 'arrive' | 'aground' | 'wrecked' | 'repaired' | 'edge'} Cue
+ * @typedef {'found' | 'arrive' | 'aground' | 'wrecked' | 'repaired' | 'edge' | 'anchor'
+ *   | 'engineOn' | 'engineOff' | 'fill' | 'tack' | 'gybe' | 'winch' | 'goal' | 'finale'} Cue
+ *   `goal` and `finale` are not from the stores: soundscape.js hears them from the objective list
  */
 
 /** @param {number} x */
@@ -94,6 +96,41 @@ export function cues(before, after) {
     ) {
       out.push(notice);
     }
+  }
+  if (before.voyage.sailed === false && after.voyage.sailed === true) out.push('anchor');
+
+  out.push(...sailing(before.passage.log ?? null, after.passage.log ?? null));
+  return out;
+}
+
+/** Sheet moved by at least this much: the winch clicks. */
+const WINCH_STEP = 0.03;
+
+/**
+ * Cues from the boat's log: engine on and off, a sail filling, tacks, gybes, the winch.
+ * @param {Log | null} a before
+ * @param {Log | null} b after
+ * @returns {Cue[]}
+ */
+function sailing(a, b) {
+  /** @type {Cue[]} */
+  const out = [];
+  if (!a || !b) return out;
+  if (!a.engine && b.engine) out.push('engineOn');
+  if (a.engine && !b.engine) out.push('engineOff');
+  if (b.engine) return out; // sails struck: no canvas sounds
+  const num = (/** @type {unknown} */ x) => typeof x === 'number' && Number.isFinite(x);
+  if (num(a.trim) && num(b.trim) && Number(a.trim) < 0.5 && Number(b.trim) >= 0.75) {
+    out.push('fill');
+  }
+  if (num(a.relative) && num(b.relative) && Number(a.relative) * Number(b.relative) < 0) {
+    // The wind crossed the bow (near 0) or the stern (near ±π).
+    out.push(
+      Math.abs(Number(a.relative)) + Math.abs(Number(b.relative)) < Math.PI ? 'tack' : 'gybe',
+    );
+  }
+  if (num(a.sheet) && num(b.sheet) && Math.abs(Number(b.sheet) - Number(a.sheet)) >= WINCH_STEP) {
+    out.push('winch');
   }
   return out;
 }

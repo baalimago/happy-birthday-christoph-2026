@@ -35,7 +35,7 @@ Boundary: `/js/audio/` may import only `/js/stores/` (add `'/js/audio/': ['/js/s
 ## What it listens to
 
 From `passage`: `state.log` (`speed` 0..8, `windSpeed` 0.55..1.25, `trim` 0..1 with 1 well trimmed,
-`engine`; optional `land`, 0 open sea .. 1 on the beach, for gulls along any coast), `state.near`,
+`sheet`, `relative` (wind angle off the bow, radians, signed by side), `engine`; optional `land`, 0 open sea .. 1 on the beach, for gulls along any coast), `state.near`,
 `state.notice`, `state.reading` and `state.chart` (both duck the sea). From `voyage`: `state.found`
 (a new entry rings the ship's bell) and `state.hull` (0..1 or 0..100; a worn hull creaks more).
 
@@ -48,7 +48,11 @@ From `passage`: `state.log` (`speed` 0..8, `windSpeed` 0.55..1.25, `trim` 0..1 w
 | Engine | `engine`; pitch rises with speed |
 | Gulls | `near` a port, or `log.land` |
 | Timber creaks | speed, wind, hull wear |
-| Cues | new port (bells), revisit (one bell), `aground` (thud), `wrecked` (crash and low bell), `repaired` (hammer and bell), `edge` (foghorn) |
+| Sail cues | sheet moved (winch clicks), trim from poor to good (the sail fills with a whump), `relative` changes sign: through the bow is a tack (canvas flogs, then fills), across the stern a gybe (the boom slams) |
+| Engine cues | `engine` on (starter whirr, a cough, then the hum) and off (a last sputter) |
+| Port cues | new port (ship's bell), revisit (one bell) |
+| Goal cues | a `[data-goal]` newly gets `data-done` (set by the HUD): a clock tower peal; the last goal rings a longer peal and strikes the hour three times. If that same change found a port, the peal replaces the port bell |
+| Other cues | `voyage.sailed` turns true (anchor chain), `aground` (thud), `wrecked` (crash and low bell), `repaired` (hammer and bell), `edge` (foghorn) |
 
 Nothing starts before the first `pointerdown` or `keydown` (browsers require a gesture). Muting fades out
 and suspends the context; a hidden tab suspends it too. Aborting the signal closes it.
