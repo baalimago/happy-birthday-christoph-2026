@@ -30,7 +30,7 @@ Boundary: `/js/audio/` may import only `/js/stores/` (add `'/js/audio/': ['/js/s
    <button type="button" class="sound" data-sound aria-pressed="true" hidden>Sound</button>
    ```
 
-   The M key toggles too. The choice is kept in `localStorage['philosophers-voyage:sound']` (`on` / `off`).
+   The Q key toggles too. The choice is kept in `localStorage['philosophers-voyage:sound']` (`on` / `off`).
 
 ## What it listens to
 

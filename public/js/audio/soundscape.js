@@ -5,7 +5,7 @@
 //   everything and lets the audio hardware go.
 // - It listens only to the stores (`passage`, `voyage`), never to other elements.
 // - Nothing plays before a user gesture (a pointer or key press anywhere). Browsers require it.
-// - Every `[data-sound]` button in the document toggles the sound, and so does the M key. The choice
+// - Every `[data-sound]` button in the document toggles the sound, and so does the Q key (for quiet; M is the chart). The choice
 //   is remembered. Buttons are shown (`hidden` removed) and kept in step with `aria-pressed`
 //   (true = sound on).
 // - A missing or refused AudioContext only means silence; nothing here throws.
@@ -212,7 +212,7 @@ export function startSoundscape(signal, opts = {}) {
   root.addEventListener(
     'keydown',
     (event) => {
-      if (event.key !== 'm' && event.key !== 'M') return;
+      if (event.key !== 'q' && event.key !== 'Q') return;
       if (event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
       const el = /** @type {HTMLElement | null} */ (event.target);
       if (el?.closest?.('input, textarea, select, [contenteditable]')) return;
