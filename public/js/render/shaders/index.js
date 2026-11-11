@@ -26,6 +26,7 @@
 
 import { VIEWS } from '../views.js';
 import { PORTS, SCENE } from './scene.js';
+import { BEAST_SHADE, CREATURES } from './creatures.js';
 import { poster } from './poster.js';
 import { terminal } from './terminal.js';
 import { gold } from './gold.js';
@@ -77,7 +78,9 @@ precision highp sampler2D;
 out vec4 outColor;
 const int STEPS = ${STEPS};
 ${SCENE}
+${CREATURES}
 ${SHADERS.map((shader) => shader.glsl).join('\n')}
+${BEAST_SHADE}
 void main(){
   vec2 fc = gl_FragCoord.xy;
   float k = uRes.y/700.0;
@@ -97,6 +100,7 @@ void main(){
   float tb = marchBoat(cam, rdb, t, part);
   if (tb > 0.0) { t = tb; id = part; }
   props(ro, rd, t, id);
+  beasts(ro, rd, t, id);
   bool smoke = ${SMOKE};
   if (!smoke) {
     float tp = plume(ro, rd, t, pn, age);
@@ -145,8 +149,10 @@ void main(){
     else if (id < 7.5) { vec3 pb = cam + rdb*t; n = toWorld(boatN(pb)); q = boatLocal(pb); }
     else if (id < 8.5) n = t < 0.05 ? -rd : caveN(p);
     else if (id < 9.5) n = pn;
+    else if (id > 19.5) { n = gBeastN; q = gBeastQ; }
     else n = propN(id, p);
-    ${dispatch((id) => `col = shade_${id}(id, p, n, rd, q, t, fc, k)`)}
+    if (id > 19.5 && !dot_) col = shade_beast(id, p, n, rd, q, t, fc, k);
+    else ${dispatch((id) => `col = shade_${id}(id, p, n, rd, q, t, fc, k)`)}
   } else {
     ${dispatch((id) => `col = sky_${id}(rd, fc, k)`)}
   }
