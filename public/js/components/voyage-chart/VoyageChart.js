@@ -1,7 +1,8 @@
 import { passage } from '#stores/passage.js';
-import { FEATURES } from '#game/chart-data.js';
+import { voyage } from '#stores/voyage.js';
+import { FEATURES, START } from '#game/chart-data.js';
 import { getTerrain } from '#game/terrain.js';
-import { drawChart } from './draw.js';
+import { drawChart, markChart } from './draw.js';
 
 /** The chart is drawn on a square of this many CSS pixels, times the pixel ratio (2 at most). */
 const DRAWN = 1200;
@@ -29,6 +30,8 @@ export class VoyageChart extends HTMLElement {
 
   /** Set once the chart has been asked for, so it is drawn only once. */
   #drawing = false;
+  /** @type {HTMLCanvasElement | undefined} the chart itself, drawn once and kept */
+  #base;
 
   /** How wide the chart is shown, in CSS pixels; 0 until it has been laid out. */
   #shown = 0;
@@ -46,6 +49,8 @@ export class VoyageChart extends HTMLElement {
     document.addEventListener('keydown', (event) => this.#key(event), { signal });
     dialog?.addEventListener('close', () => passage.unroll(false), { signal });
     passage.addEventListener('change', () => this.#follow(), { signal });
+    // The boat's place and the places found may change while the chart is out.
+    voyage.addEventListener('change', () => this.#dialog?.open && this.#mark(), { signal });
 
     if (sheet) {
       const observer = new ResizeObserver(() => this.#layOut());
@@ -141,10 +146,12 @@ export class VoyageChart extends HTMLElement {
     }
   }
 
-  /** Draws the chart, once, after the dialog has had a frame to appear. */
+  /** Draws the chart once, after the dialog has had a frame to appear; after that, only the marks. */
   async #draw() {
     const canvas = this.#canvas;
-    if (this.#drawing || !canvas) return;
+    if (!canvas) return;
+    if (this.#base) return this.#mark();
+    if (this.#drawing) return;
     this.#drawing = true;
     const side = Math.min(LARGEST, Math.round(DRAWN * Math.min(2, Math.max(1, devicePixelRatio))));
     canvas.width = canvas.height = side;
@@ -155,12 +162,25 @@ export class VoyageChart extends HTMLElement {
     }
     await new Promise((resolve) => requestAnimationFrame(resolve));
     try {
-      drawChart(canvas, getTerrain(), FEATURES);
+      const base = document.createElement('canvas');
+      base.width = base.height = side;
+      drawChart(base, getTerrain(), FEATURES);
+      this.#base = base;
+      this.#mark();
       this.toggleAttribute('data-drawn', true);
     } catch (error) {
       this.#drawing = false;
       console.error('voyage-chart', error);
     }
+  }
+
+  /** Lays the chart on the canvas with the places to find and the boat marked as they stand now. */
+  #mark() {
+    const canvas = this.#canvas;
+    const base = this.#base;
+    if (!canvas || !base) return;
+    const { found, berth } = voyage.state;
+    markChart(canvas, base, getTerrain(), found, berth ?? START);
   }
 
   /** The size at which the whole chart fits in the sheet. */

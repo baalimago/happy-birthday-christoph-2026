@@ -8,6 +8,13 @@
 
 /** Slots the shader has room for. */
 export const SLOTS = 14;
+/** Seconds under way before the first creature of the open sea shows, least and most. */
+export const FIRST_MEETING = [150, 240];
+/** Seconds under way between one meeting and the next, least and most. */
+export const MEETING_GAP = [200, 380];
+/** The kinds that count as a meeting, in the order the voyage first brings them. */
+/** @type {readonly Kind[]} */
+const MEETINGS = ['turtle', 'flyingfish', 'dolphin', 'whale'];
 
 /** @typedef {'dolphin' | 'whale' | 'gull' | 'turtle' | 'flyingfish' | 'splash' | 'spout'} Kind */
 
@@ -57,7 +64,7 @@ const RANGE = 170;
 /** A kraken never rises in the first this many seconds under way. */
 const KRAKEN_GRACE = 240;
 /** Mean seconds of open-water sailing between krakens. */
-const KRAKEN_EVERY = 1500;
+const KRAKEN_EVERY = 2400;
 /** The kraken swims this fast: a well-trimmed boat outruns it, one under engine does not. */
 export const KRAKEN_SPEED = 5.6;
 /** It gives up past this distance, or after this many seconds of chase. */
@@ -140,6 +147,9 @@ export function createFauna(seed = 1) {
    *   struck: boolean }) | null} */
   let kraken = null;
   let underWay = 0;
+  /** Seconds under way at which the next creature may show, and how many have shown. */
+  let nextMeeting = -1;
+  let meetings = 0;
   let pods = 0;
   let nearLand = false;
   let landCheck = 0;
@@ -184,11 +194,18 @@ export function createFauna(seed = 1) {
    */
   function populate(boat, water, out) {
     if (lives.length >= SLOTS - 2) return;
-    // A pod of dolphins now and then.
-    if (count(lives, 'dolphin') === 0 && rand() < 0.001) {
+    // Creatures of the open sea are rare, and come one kind at a time: nothing for the first
+    // minutes, then long quiet stretches between meetings. The first four meetings bring the
+    // kinds in order (turtle, flying fish, dolphins, whale); after that it is any of them.
+    if (nextMeeting < 0) nextMeeting = between(FIRST_MEETING[0], FIRST_MEETING[1]);
+    const due = underWay >= nextMeeting && !lives.some((l) => MEETINGS.includes(l.kind));
+    const kind = due ? (MEETINGS[meetings] ?? MEETINGS[Math.floor(rand() * MEETINGS.length)]) : '';
+    const before = lives.length;
+    // A pod of dolphins.
+    if (kind === 'dolphin') {
       const at = spot(boat, water, 35, 80, 1.2);
       if (at) {
-        const n = 3 + Math.floor(rand() * 3);
+        const n = 2 + Math.floor(rand() * 2);
         const heading = boat.heading + between(-0.6, 0.6);
         pods++;
         for (let i = 0; i < n && lives.length < SLOTS - 3; i++) {
@@ -200,12 +217,13 @@ export function createFauna(seed = 1) {
           d.ox = between(-2.5, 2.5);
           d.oz = between(-2, 3);
           d.size = between(0.9, 1.1);
+          d.life = between(40, 70); // seconds of company before the pod goes its own way
           lives.push(d);
         }
       }
     }
-    // A whale, further out, now and then.
-    if (count(lives, 'whale') === 0 && rand() < 0.0015) {
+    // A whale, further out.
+    if (kind === 'whale') {
       const at = spot(boat, water, 70, 140, 1.0);
       if (at) {
         const w = born('whale', at.x, at.z, boat.heading + between(-2, 2));
@@ -219,7 +237,7 @@ export function createFauna(seed = 1) {
     }
     // Gulls wheel over the boat near land; far out there is now and then a straggler.
     const gulls = count(lives, 'gull');
-    if (gulls < (nearLand ? 4 : 1) && rand() < (nearLand ? 0.02 : 0.002)) {
+    if (gulls < (nearLand ? 2 : 1) && rand() < (nearLand ? 0.004 : 0.0003)) {
       const a = between(0, TAU);
       const g = born('gull', boat.x + Math.sin(a) * 40, boat.z + Math.cos(a) * 40, a + Math.PI);
       g.y = between(6, 11);
@@ -231,8 +249,8 @@ export function createFauna(seed = 1) {
       g.mode = 'come';
       lives.push(g);
     }
-    // Turtles basking at the surface.
-    if (count(lives, 'turtle') < 2 && rand() < 0.002) {
+    // A turtle basking at the surface.
+    if (kind === 'turtle') {
       const at = spot(boat, water, 30, 70, 0.9);
       if (at) {
         const t = born('turtle', at.x, at.z, between(0, TAU));
@@ -244,7 +262,7 @@ export function createFauna(seed = 1) {
       }
     }
     // A school of flying fish bursts out ahead of the bow.
-    if (count(lives, 'flyingfish') === 0 && boat.speed > 2 && rand() < 0.003) {
+    if (kind === 'flyingfish' && boat.speed > 2) {
       const at = spot(boat, water, 14, 30, 0.5);
       if (at) {
         const n = 3 + Math.floor(rand() * 4);
@@ -259,6 +277,10 @@ export function createFauna(seed = 1) {
         }
         out.push('flyingfish');
       }
+    }
+    if (due && lives.length > before) {
+      meetings++;
+      nextMeeting = underWay + between(MEETING_GAP[0], MEETING_GAP[1]);
     }
   }
 
@@ -425,7 +447,7 @@ export function createFauna(seed = 1) {
       g.timer = between(2, 5);
       g.mode = g.mode === 'flap' ? 'glide' : 'flap';
       g.high = between(5.5, 12);
-      if (rand() < 0.35) out.push('gull-cry');
+      if (rand() < 0.08) out.push('gull-cry');
     }
     g.y += (g.high - g.y) * Math.min(1, dt * 0.4);
     g.pitch = (g.high - g.y) * 0.05;
@@ -635,8 +657,12 @@ export function createFauna(seed = 1) {
       }
 
       for (const l of lives) {
-        if (l.kind === 'dolphin') dolphin(l, boat, water, dt, sightings);
-        else if (l.kind === 'whale') whale(l, water, dt, sightings);
+        if (l.kind === 'dolphin') {
+          dolphin(l, boat, water, dt, sightings);
+          // A pod keeps the boat company for a minute, then is gone at its next dive.
+          l.life -= dt;
+          if ((l.life <= 0 && l.y < -0.2) || l.life < -12) l.dead = true;
+        } else if (l.kind === 'whale') whale(l, water, dt, sightings);
         else if (l.kind === 'gull') gull(l, boat, dt, sightings);
         else if (l.kind === 'turtle') turtle(l, boat, water, dt, sightings);
         else if (l.kind === 'flyingfish') flyingfish(l, dt);

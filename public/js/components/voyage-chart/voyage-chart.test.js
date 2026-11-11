@@ -102,7 +102,9 @@ test('follows the store when the map is unrolled or put away elsewhere', async (
   await expect(dialog).toBeHidden();
 });
 
-test('draws the chart once, on first opening, as paper with land and sea', async ({ page }) => {
+test('draws the chart on first opening, as paper with land and sea, and keeps it', async ({
+  page,
+}) => {
   const chart = await openSea(page);
   const canvas = chart.locator('canvas');
   await expect(chart).not.toHaveAttribute('data-drawn');
@@ -129,7 +131,7 @@ test('draws the chart once, on first opening, as paper with land and sea', async
   expect(sample.sea).toBeGreaterThan(190);
   expect(sample.land).toBeLessThan(sample.sea - 12);
 
-  // Closing and opening again does not draw again.
+  // Closing and opening again lays the kept chart down afresh, with the marks as they now stand.
   await page.keyboard.press('Escape');
   const marked = await canvas.evaluate((el) => {
     const c = /** @type {HTMLCanvasElement} */ (el);
@@ -148,7 +150,8 @@ test('draws the chart once, on first opening, as paper with land and sea', async
     const ctx = /** @type {HTMLCanvasElement} */ (el).getContext('2d');
     return [...(ctx?.getImageData(1, 1, 1, 1).data ?? [])];
   });
-  expect(pixel.slice(0, 3)).toEqual([255, 0, 255]);
+  expect(pixel.slice(0, 3)).not.toEqual([255, 0, 255]);
+  await expect(chart).toHaveAttribute('data-drawn', '');
 });
 
 test('names the places for those who cannot see the picture', async ({ page }) => {

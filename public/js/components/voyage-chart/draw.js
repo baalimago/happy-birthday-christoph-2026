@@ -1,6 +1,7 @@
 // Draws the sea chart: the height grid as an engraved paper chart, north up. Coast, hills, woods,
-// shoals, names, a rose and a scale, and one mark: the home harbour, where the voyage begins.
-// Nothing else: no boat, no ports, no route, no cave.
+// shoals, names, a rose and a scale, and an anchor at the home harbour, where the voyage begins.
+// `markChart` lays that drawing on the visible canvas and adds what changes: a red cross on each
+// of the seven places (ringed and ticked once found) and the boat where she lies.
 
 import { START } from '#game/chart-data.js';
 import { noise } from '#game/terrain.js';
@@ -750,4 +751,78 @@ export function drawChart(canvas, terrain, features) {
       ctx.restore();
     }
   }
+}
+
+/**
+ * Copy the drawn chart onto the visible canvas and mark the places to find and the boat.
+ * @param {HTMLCanvasElement} canvas the canvas on show
+ * @param {HTMLCanvasElement} base the chart as drawChart left it, the same size
+ * @param {Terrain} terrain
+ * @param {readonly string[]} found ids of the places found
+ * @param {{ x: number, z: number, heading: number }} boat
+ */
+export function markChart(canvas, base, terrain, found, boat) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const s = canvas.width / SHEET;
+  const half = terrain.extent / 2;
+  const unit = (SHEET - MARGIN * 2) / terrain.extent;
+  const mapX = (/** @type {number} */ x) => (MARGIN + (x + half) * unit) * s;
+  const mapY = (/** @type {number} */ z) => (MARGIN + (half - z) * unit) * s;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(base, 0, 0, canvas.width, canvas.height);
+
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (const port of terrain.ports) {
+    const x = mapX(port.x);
+    const y = mapY(port.z);
+    const arm = 9 * s;
+    const done = found.includes(port.id);
+    // Paper under the mark, so it shows on land and hatching alike.
+    for (const [colour, width] of /** @type {const} */ ([
+      [PAPER, 7 * s],
+      [RED, 3 * s],
+    ])) {
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      if (done) {
+        ctx.arc(x, y, arm * 1.25, 0, Math.PI * 2);
+        ctx.moveTo(x - arm * 0.6, y);
+        ctx.lineTo(x - arm * 0.15, y + arm * 0.5);
+        ctx.lineTo(x + arm * 0.65, y - arm * 0.55);
+      } else {
+        ctx.moveTo(x - arm, y - arm);
+        ctx.lineTo(x + arm, y + arm);
+        ctx.moveTo(x + arm, y - arm);
+        ctx.lineTo(x - arm, y + arm);
+      }
+      ctx.stroke();
+    }
+  }
+
+  // The boat: a dart pointing the way she heads, with "You" beside it.
+  ctx.save();
+  ctx.translate(mapX(boat.x), mapY(boat.z));
+  ctx.font = `italic ${17 * s}px ${SERIF}`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = INK;
+  write(ctx, 'You', 15 * s, 0, 4 * s);
+  ctx.rotate(boat.heading);
+  const b = 11 * s;
+  ctx.beginPath();
+  ctx.moveTo(0, -b * 1.3);
+  ctx.lineTo(b * 0.75, b);
+  ctx.lineTo(0, b * 0.5);
+  ctx.lineTo(-b * 0.75, b);
+  ctx.closePath();
+  ctx.strokeStyle = PAPER;
+  ctx.lineWidth = 5 * s;
+  ctx.stroke();
+  ctx.fillStyle = INK;
+  ctx.fill();
+  ctx.restore();
 }

@@ -123,6 +123,7 @@ export class VoyageHud extends HTMLElement {
     this.#connected = new AbortController();
     const { signal } = this.#connected;
     this.addEventListener('click', (event) => this.#choose(event), { signal });
+    document.addEventListener('keydown', (event) => this.#cycle(event), { signal });
     voyage.addEventListener('change', () => this.#renderVoyage(), { signal });
     passage.addEventListener('change', () => this.#renderPassage(), { signal });
     signal.addEventListener('abort', () => {
@@ -133,6 +134,21 @@ export class VoyageHud extends HTMLElement {
     this.#addDoneMarks();
     this.#renderVoyage();
     this.#renderPassage();
+  }
+
+  /** V steps through the views unlocked so far. @param {KeyboardEvent} event */
+  #cycle(event) {
+    if (event.key !== 'v' && event.key !== 'V') return;
+    if (event.ctrlKey || event.metaKey || event.altKey || event.repeat || event.isComposing) return;
+    const target = event.target;
+    if (target instanceof HTMLElement) {
+      if (target.isContentEditable || target.closest('input, textarea, select')) return;
+    }
+    const open = [...this.querySelectorAll('button[data-view]:not([hidden])')];
+    if (open.length < 2) return;
+    const at = open.findIndex((button) => button.getAttribute('aria-pressed') === 'true');
+    const next = open[(at + 1) % open.length];
+    if (next instanceof HTMLElement) next.click();
   }
 
   disconnectedCallback() {

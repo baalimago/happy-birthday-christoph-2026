@@ -83,8 +83,16 @@ export function creature(ctx, out, room, buf, kind, t) {
   const pan = between(-0.8, 0.8);
   switch (kind) {
     case 'dolphin-leap': {
-      spray(ctx, out, buf, t, 0.8, pan);
-      slap(ctx, out, buf, t + between(0.6, 0.9), 0.9, pan);
+      // Far off: a soft hiss as it leaves the water and a short, dull splash as it lands.
+      spray(ctx, out, buf, t, 0.12, pan);
+      breath(ctx, out, buf.white, t + between(0.6, 0.9), {
+        hz: 1500,
+        to: 420,
+        dur: between(0.45, 0.7),
+        gain: 0.035,
+        q: 0.5,
+        pan,
+      });
       // A few quick whistles and clicks.
       for (let i = 0; i < 3; i++) {
         const s = t + between(0, 1.2);
@@ -93,7 +101,7 @@ export function creature(ctx, out, room, buf, kind, t) {
           from: f,
           to: f * between(1.2, 1.6),
           dur: between(0.12, 0.3),
-          gain: 0.03,
+          gain: 0.008,
           pan,
         });
       }

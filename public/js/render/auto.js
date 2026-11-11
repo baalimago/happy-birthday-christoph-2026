@@ -1,8 +1,9 @@
-// Which renderer draws the sea. Triangles (mesh/) run anywhere and start at once, so they are the
-// rule. Asked to try (`?try`), and where the browser draws on a real graphics card, the ray-marched
-// sea (renderer.js) is compiled in the background and takes over when it is ready; if its frames then run slow, the
-// triangles come back for good. Each renderer has a canvas of its own (a canvas has one context),
-// and only the one in use is shown.
+// Which renderer draws the sea. Where the browser draws on a real graphics card, the ray-marched
+// sea (renderer.js) is the one: it is the picture the voyage was made for. Its shaders are long
+// to compile, so the loading bar stays up until they are ready. If its frames then run slow, or
+// it cannot be built, triangles (mesh/) take over for good; and where WebGL runs in software,
+// triangles are used from the start, since ray marching cannot keep up there. Each renderer has a
+// canvas of its own (a canvas has one context), and only the one in use is shown.
 
 import { createMeshRenderer } from './mesh/renderer.js';
 import { createRenderer } from './renderer.js';
@@ -10,8 +11,6 @@ import { createRenderer } from './renderer.js';
 /** @typedef {import('./renderer.js').Renderer} Renderer */
 /** @typedef {import('./renderer.js').RenderTerrain} RenderTerrain */
 
-/** Frames of the fast renderer to draw before the fine one starts compiling. */
-const SETTLE = 45;
 /** A frame longer than this many milliseconds counts against the fine renderer. */
 const SLOW = 30;
 /** A frame this long counts ten times. */
@@ -35,8 +34,8 @@ export function hasGpu(gl) {
  * @param {HTMLCanvasElement} fast the canvas for the mesh renderer
  * @param {HTMLCanvasElement} fine the canvas for the ray-marched renderer
  * @param {RenderTerrain} terrain
- * @param {'auto' | 'fast' | 'fine' | 'try'} [mode] auto and fast draw triangles; try starts on
- *   triangles and moves to the fine renderer on a graphics card if it keeps up; fine insists on it
+ * @param {'auto' | 'fast' | 'fine'} [mode] auto picks by the machine and falls back to triangles
+ *   if the fine sea runs slow; fast and fine insist on one
  * @returns {Renderer | null}
  */
 export function createAutoRenderer(fast, fine, terrain, mode = 'auto') {
@@ -44,36 +43,45 @@ export function createAutoRenderer(fast, fine, terrain, mode = 'auto') {
     fast.hidden = true;
     return createRenderer(fine, terrain);
   }
-  fine.hidden = true;
-  const mesh = createMeshRenderer(fast, terrain);
-  const gl = fast.getContext('webgl2');
-  // Only on request: compiling the ray-marched sea froze the whole browser for a long while on a
-  // machine with a graphics card (its driver compiles on the thread everything else waits for),
-  // so it is no longer tried unasked.
-  if (!mesh || mode !== 'try' || !gl || !hasGpu(gl)) return mesh;
-
+  const probe = document.createElement('canvas').getContext('webgl2');
+  const card = mode === 'auto' && probe !== null && hasGpu(probe);
+  probe?.getExtension('WEBGL_lose_context')?.loseContext();
   /** @type {Renderer | null} */
-  let candidate = null;
-  /** @type {'fast' | 'fine' | 'settled'} */
-  let state = 'fast';
+  let candidate = card ? createRenderer(fine, terrain) : null;
+  if (!candidate) {
+    fine.hidden = true;
+    return createMeshRenderer(fast, terrain);
+  }
+  fast.hidden = true;
+
+  /** @type {Renderer | null} the triangles, once the fine sea has been given up */
+  let mesh = null;
   let frames = 0;
   let slow = 0;
   let last = 0;
 
   const giveUp = () => {
-    candidate?.dispose();
+    if (!candidate) return;
+    candidate.dispose();
     candidate = null;
     fine.hidden = true;
     fast.hidden = false;
-    state = 'settled';
+    mesh = createMeshRenderer(fast, terrain);
   };
   fine.addEventListener('webglcontextlost', giveUp);
 
   return {
-    ready: () => mesh.ready(),
+    ready() {
+      if (candidate) {
+        const state = candidate.ready();
+        if (state !== 'failed') return state;
+        giveUp();
+      }
+      return mesh ? mesh.ready() : 'failed';
+    },
 
     draw(frame) {
-      if (state === 'fine' && candidate) {
+      if (candidate) {
         const now = performance.now();
         const took = last ? now - last : 0;
         last = now;
@@ -84,25 +92,13 @@ export function createAutoRenderer(fast, fine, terrain, mode = 'auto') {
         if (slow < PATIENCE) return candidate.draw(frame);
         giveUp();
       }
-      mesh.draw(frame);
-      if (state !== 'fast') return;
-      frames++;
-      if (frames === SETTLE) candidate = createRenderer(fine, terrain);
-      const ready = candidate?.ready();
-      if (ready === 'failed') giveUp();
-      if (ready === 'ready') {
-        fast.hidden = true;
-        fine.hidden = false;
-        state = 'fine';
-        frames = 0;
-        last = 0;
-      }
+      mesh?.draw(frame);
     },
 
     dispose() {
       fine.removeEventListener('webglcontextlost', giveUp);
       candidate?.dispose();
-      mesh.dispose();
+      mesh?.dispose();
     },
   };
 }

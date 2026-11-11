@@ -29,7 +29,8 @@ function cruise(fauna, seconds, speed, water = sea) {
 
 test('a long passage meets dolphins, whales and flying fish, and keeps them near the boat', () => {
   const fauna = createFauna(7);
-  const { boat, seen } = cruise(fauna, 900, 5);
+  // Meetings are rare: this is an hour under way.
+  const { boat, seen } = cruise(fauna, 3600, 5);
   for (const kind of ['dolphin-leap', 'whale-blow', 'flyingfish']) {
     assert.ok(seen.includes(kind), `saw ${kind}`);
   }
@@ -39,10 +40,20 @@ test('a long passage meets dolphins, whales and flying fish, and keeps them near
   }
 });
 
+test('the first minutes are quiet, and the sea never crowds', () => {
+  const fauna = createFauna(9);
+  const early = cruise(fauna, 140, 5);
+  assert.deepEqual(
+    early.seen.filter((kind) => !kind.startsWith('gull')),
+    [],
+  );
+  assert.equal(fauna.beasts.filter((beast) => beast.kind !== 'gull').length, 0);
+});
+
 test('gulls come near land, and cry', () => {
   const fauna = createFauna(3);
   // Land 100 units east of the course.
-  const { seen } = cruise(fauna, 300, 3, (x) => x < 100);
+  const { seen } = cruise(fauna, 1500, 3, (x) => x < 100);
   assert.ok(seen.includes('gull-cry'));
 });
 

@@ -28,7 +28,7 @@ const BED_GAIN = {
   wash: 0.25,
   wind: 0.24,
   whistle: 0.06,
-  luff: 0.22,
+  luff: 0.08,
   engine: 0.28,
   rocket: 0.3,
   kraken: 0.22,
@@ -80,7 +80,6 @@ export function startSoundscape(signal, opts = {}) {
   let interval = 0;
   let snapshot = take();
   let foundAt = -Infinity;
-  let winchAt = -Infinity;
   let anchorAt = -Infinity;
   let pendingFound = 0;
   let nextGull = 0;
@@ -183,10 +182,8 @@ export function startSoundscape(signal, opts = {}) {
     }
     for (const cue of fired) {
       if (cue === 'arrive' && t - foundAt < 3) continue; // the new-port bells already rang
-      if (cue === 'winch') {
-        if (t - winchAt < 0.18) continue; // a held key moves the sheet every frame
-        winchAt = t;
-      }
+      // The winch's clicks read as a fault (Lorentz, 2026-11-11): the sheet moves in silence.
+      if (cue === 'winch') continue;
       if (cue === 'anchor') anchorAt = t;
       if (cue === 'found') {
         // Wait a beat: if this port completes a goal, the clock tower rings instead of the bells.

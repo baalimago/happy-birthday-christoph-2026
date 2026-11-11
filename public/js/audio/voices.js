@@ -212,7 +212,8 @@ function whistle(ctx, out, white) {
 }
 
 /**
- * Luff: a badly trimmed sail flogging, a fast flutter of canvas noise.
+ * Luff: a badly trimmed sail shivering, a slow soft flutter of canvas noise. (It used to flog at
+ * 6.5 Hz with hard edges, which sounded like a ratchet.)
  * @param {AudioContext | OfflineAudioContext} ctx @param {AudioNode} out @param {AudioBuffer} white
  * @returns {Bed}
  */
@@ -224,11 +225,11 @@ function luff(ctx, out, white) {
   hp.frequency.value = 250;
   const lp = ctx.createBiquadFilter();
   lp.type = 'lowpass';
-  lp.frequency.value = 2400;
+  lp.frequency.value = 1300;
   const flutter = ctx.createGain();
-  flutter.gain.value = 0.5;
-  const { osc } = lfo(ctx, flutter.gain, 6.5, 0.5, 'triangle');
-  lfo(ctx, osc.frequency, 0.3, 1.8); // the flapping speeds up and slows down
+  flutter.gain.value = 0.7;
+  const { osc } = lfo(ctx, flutter.gain, 2.2, 0.3, 'sine');
+  lfo(ctx, osc.frequency, 0.2, 0.6); // the flapping speeds up and slows down
   loop(ctx, white).connect(hp).connect(lp).connect(flutter).connect(level);
   return { level };
 }

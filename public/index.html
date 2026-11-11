@@ -112,7 +112,7 @@
 <voyage-sea>
   <p class="loading" role="status">
     <span data-step="chart">Charting the waters…</span>
-    <span data-step="rig">Rigging the boat…</span>
+    <span data-step="rig">Rigging the boat… the first time can take a minute, and the page may not respond until it is done.</span>
     <span class="bar" aria-hidden="true"></span>
   </p>
   <voyage-log>
@@ -123,11 +123,11 @@
       <p class="lede">Happy birthday, Christoph. This is a sailing game, and the boat is yours.</p>
       <ol class="how">
         <li><strong>Where you are:</strong> at anchor in the home harbour, on the south coast, bow pointing north to the open sea. The red anchor on the map (<kbd>M</kbd>) is this spot.</li>
-        <li><strong>The goal:</strong> seven places are hidden across the sea, six lighthouses and a sea cave. Sail up close to one and it is found. The Captain's orders, top left, say what to look for next; the first light stands on the headland close by, to the east (your right).</li>
+        <li><strong>The goal:</strong> seven places are hidden across the sea, six lighthouses and a sea cave. Sail up close to one and it is found. The Captain's orders, top left, say what to look for next; the first one is the lighthouse on the headland right beside the harbour, to the east: turn right (<kbd>→</kbd>) as you leave and it is a minute away. Every place is a red cross on the map.</li>
         <li><strong>Steer</strong> with <kbd>←</kbd> and <kbd>→</kbd>. The compass is top right.</li>
         <li><strong>Sails:</strong> <kbd>↑</kbd> lets them out, <kbd>↓</kbd> hauls them in. Trim until the boom meets the marker on the wind dial; the instruments tell you which way. You cannot sail straight into the wind.</li>
         <li><strong>Easier:</strong> <kbd>E</kbd> starts the engine, and it works in any wind.</li>
-        <li><strong>Each place found</strong> gives a passage for the ship's library (<kbd>L</kbd>), and some unlock a new way of drawing the sea. <kbd>Q</kbd> mutes the sound. Keep off the rocks.</li>
+        <li><strong>Each place found</strong> gives a passage for the ship's library (<kbd>L</kbd>), and some unlock a new view of the sea: switch with <kbd>V</kbd> or the buttons under the Captain's orders. <kbd>Q</kbd> mutes the sound. Keep off the rocks.</li>
       </ol>
       <p class="ashore">No WebGL aboard? Then this is the logbook, and it has everything the ports would have paid out.</p>
       <button type="button" data-close>Weigh anchor and set sail</button>
@@ -145,7 +145,7 @@
           <p>The limits of my language mean the limits of my world.</p>
           <footer>Ludwig Wittgenstein, <cite>Tractatus</cite> 5.6</footer>
         </blockquote>
-        <p class="unlock">This port unlocks the Gold view: Vienna, 1900. The sea is drawn that way now; switch views under the Captain's orders.</p>
+        <p class="unlock">This port unlocks the Gold view: Vienna, 1900. The sea is drawn that way now; press <kbd>V</kbd> to switch views, or use the buttons under the Captain's orders.</p>
         <p class="passage">A passage comes aboard for the ship's library: <cite>The Man Without Qualities</cite>, Robert Musil. <button type="button" data-close data-reading-open="wittgenstein">Read it under way</button></p>
         <button type="button" data-close>Sail on</button>
       </article></li>
@@ -156,7 +156,7 @@
           <p>All life is problem solving.</p>
           <footer>Karl Popper</footer>
         </blockquote>
-        <p class="unlock">This port unlocks the Chart view: the sea as a pilot would draw it. The sea is drawn that way now; switch views under the Captain's orders.</p>
+        <p class="unlock">This port unlocks the Chart view: the sea as a pilot would draw it. The sea is drawn that way now; press <kbd>V</kbd> to switch views, or use the buttons under the Captain's orders.</p>
         <p class="passage">A passage comes aboard for the ship's library: <cite>Waste Books and aphorisms</cite>, Lichtenberg and Karl Kraus. <button type="button" data-close data-reading-open="juniper">Read it under way</button></p>
         <button type="button" data-close>Sail on</button>
       </article></li>
@@ -197,7 +197,7 @@
           <p>How could they see anything but the shadows if they were never allowed to move their heads?</p>
           <footer>Plato, <cite>Republic</cite>, Book VII</footer>
         </blockquote>
-        <p class="unlock">This cave unlocks the Terminal view: the sea as shadows on a wall. The sea is drawn that way now; switch views under the Captain's orders.</p>
+        <p class="unlock">This cave unlocks the Terminal view: the sea as shadows on a wall. The sea is drawn that way now; press <kbd>V</kbd> to switch views, or use the buttons under the Captain's orders.</p>
         <p class="passage">A passage comes aboard for the ship's library: <cite>The Treasure of the Humble: Silence</cite>, Maurice Maeterlinck. <button type="button" data-close data-reading-open="plato">Read it under way</button></p>
         <button type="button" data-close>Sail on</button>
       </article></li>
@@ -225,14 +225,14 @@
       <h2>Captain's orders</h2>
       <ol class="objectives">
         <li data-goal="sail">Leave the harbour</li>
-        <li data-goal="port:wittgenstein">Find the light on the home headland</li>
+        <li data-goal="port:wittgenstein">Find the light just east of the harbour</li>
         <li data-goal="ports:3">Find three places</li>
         <li data-goal="port:plato">Find the cave in Schattenfels</li>
         <li data-goal="views:4">Collect all four views</li>
         <li data-goal="ports:7">Find all seven</li>
       </ol>
       <div class="views" role="group" aria-label="View">
-        <span class="views-label">Views unlocked</span>
+        <span class="views-label">Views unlocked (<kbd>V</kbd> switches)</span>
         <button type="button" data-view="poster" aria-pressed="true">Poster</button>
         <button type="button" data-view="terminal" hidden>Terminal</button>
         <button type="button" data-view="gold" hidden>Gold</button>
@@ -325,7 +325,7 @@
       <div data-chart-sheet role="group" aria-label="The chart. Scroll to move about it." tabindex="0" autofocus>
         <canvas width="1200" height="1200" aria-hidden="true"></canvas>
       </div>
-      <p class="legend">North is up. Only the home harbour is marked: find the rest by compass and coastline.</p>
+      <p class="legend">North is up. A red cross marks each of the seven places, ringed once found. The dart is your boat.</p>
       <div class="visually-hidden">
         <h3>Places on the chart</h3>
         <p>The mainland, <span lang="de">Österreich am Meer</span>, fills the south, with the home harbour in a bay at the middle of its coast. Seaward of it, from south to north:</p>

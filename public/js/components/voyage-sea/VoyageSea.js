@@ -118,6 +118,7 @@ export class VoyageSea extends HTMLElement {
   #watch = 0;
   #sinceLog = 0;
   #sinceMoor = 0;
+  #charting = false;
   #hold = 0;
   #yaw = REST_YAW;
   #pitch = REST_PITCH;
@@ -163,10 +164,9 @@ export class VoyageSea extends HTMLElement {
    */
   #embark(canvas, fine, signal) {
     const terrain = getTerrain();
-    // `?fine` and `?fast` in the address insist on one renderer and `?try` tries the fine one
-    // whatever the machine; otherwise the machine decides.
+    // `?fine` and `?fast` in the address insist on one renderer; otherwise the machine decides.
     const asked = new URLSearchParams(location.search);
-    const mode = /** @type {const} */ (['fine', 'fast', 'try']).find((m) => asked.has(m)) ?? 'auto';
+    const mode = asked.has('fine') ? 'fine' : asked.has('fast') ? 'fast' : 'auto';
     this.#renderer = createAutoRenderer(canvas, fine, terrain, mode);
     if (!this.#renderer) {
       this.removeAttribute('loading');
@@ -335,6 +335,9 @@ export class VoyageSea extends HTMLElement {
     if (!this.#still) this.#time += dt;
 
     const hoveTo = passage.state.reading || passage.state.chart;
+    // The chart shows where she lies: tell the log as the map is unrolled.
+    if (passage.state.chart && !this.#charting) this.#moor();
+    this.#charting = passage.state.chart;
     const wind = windAt(this.#watch, this.#boat.x, this.#boat.z);
     // Hove to, the clock stops but the instruments still read.
     const step = hoveTo ? 0 : dt;
