@@ -99,7 +99,7 @@ vec3 p_sea(vec3 p, vec3 n, vec3 rd, float t){
   // far off the waves are too fine to see: the water there is rough, mirrors less, and more sky
   float rough = 0.22*smoothstep(10.0, 400.0, t) + 0.10*gust;
   float cosv = max(dot(nn, -rd), 0.03 + rough);
-  float fres = 0.02 + 0.98*pow(1.0 - cosv, 5.0);
+  float fres = 0.02 + 0.98*pow(max(1.0 - cosv, 0.0), 5.0);
   vec3 r = reflect(rd, nn);
   float under = smoothstep(0.0, -0.2, r.y);          // a wave's back mirrors more water, not sky
   r.y = max(abs(r.y), 0.02) + 0.6*rough;

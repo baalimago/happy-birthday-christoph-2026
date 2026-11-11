@@ -438,7 +438,7 @@ vec3 shade_beast(float id, vec3 p, vec3 n, vec3 rd, vec3 q, float t, vec2 fc, fl
       vec3 r = reflect(rd, n);
       float gloss = mix(0.25, 1.0, wet)*(kraken_ ? 0.6 : 0.8);
       c += sc*sh*gloss*0.7*pow(max(dot(r, uSun), 0.0), mix(18.0, 70.0, wet));
-      float fres = 0.03 + 0.55*pow(1.0 - ndv, 5.0);
+      float fres = 0.03 + 0.55*pow(max(1.0 - ndv, 0.0), 5.0);
       c = mix(c, r.y > 0.0 ? p_air(r) : P_DEEP*0.4*(ac + sc*0.4), gloss*fres);
       c *= mix(1.0, 0.72, wet*smoothstep(0.3, 0.0, p.y));
     }

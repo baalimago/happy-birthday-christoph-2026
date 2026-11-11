@@ -44,9 +44,11 @@ float gdGGX(float ndh, float rough){
 }
 // a highlight from a light in direction l, for a surface of roughness rough and reflectance f0
 vec3 gdSpec(vec3 f0, float rough, vec3 n, vec3 v, vec3 l){
-  vec3 h = normalize(v + l);
-  float ndl = max(dot(n, l), 0.0), ldh = max(dot(l, h), 0.0);
-  vec3 f = f0 + (1.0 - f0)*pow(1.0 - ldh, 5.0);
+  // (Fast normalize and dot can put a cosine a hair over one: every power below is of a clamped
+  // base, or a graphics card answers with not-a-number, which shows as a black disc opposite the sun.)
+  vec3 h = normalize(v + l + vec3(0.0, 1e-4, 0.0));
+  float ndl = max(dot(n, l), 0.0), ldh = clamp(dot(l, h), 0.0, 1.0);
+  vec3 f = f0 + (1.0 - f0)*pow(max(1.0 - ldh, 0.0), 5.0);
   return f*min(gdGGX(max(dot(n, h), 0.0), rough)*0.25/(ldh*ldh*(rough + 0.5) + 0.02), 40.0)*ndl;
 }
 // metal (m.w = 1) or enamel (m.w = 0) under the low sun and the sky. occ: how much sky it sees.
@@ -54,7 +56,7 @@ vec3 gdLit(vec4 m, float rough, vec3 n, vec3 rd, float occ){
   vec3 v = -rd, sunC = gdSunC();
   float ndv = max(dot(n, v), 0.0), ndl = max(dot(n, uSun), 0.0);
   vec3 f0 = mix(vec3(0.05), m.rgb, m.w);
-  vec3 fv = f0 + (max(vec3(1.0 - rough), f0) - f0)*pow(1.0 - ndv, 5.0);
+  vec3 fv = f0 + (max(vec3(1.0 - rough), f0) - f0)*pow(max(1.0 - ndv, 0.0), 5.0);
   vec3 amb = gdAmb(n);
   vec3 env = mix(gdEnv(reflect(rd, n)), amb*1.6, rough*rough*1.5);
   // enamel scatters; leaf scatters a little too, which is what makes it read as gold in shade
@@ -188,7 +190,7 @@ vec3 shade_gold(float id, vec3 p, vec3 n, vec3 rd, vec3 q, float t, vec2 fc, flo
     vec3 nn = normalize(n + vec3(rip.x, 0.0, rip.y)*0.55*near);
     if (mk.w > 0.5) nn = normalize(mix(nn, vec3(0.0, 1.0, 0.0), 0.5));       // it lies still in the cave
     float ndv = max(dot(nn, v), 0.0);
-    float fres = 0.045 + 0.955*pow(1.0 - ndv, 5.0);
+    float fres = 0.045 + 0.955*pow(max(1.0 - ndv, 0.0), 5.0);
     vec3 r = reflect(rd, nn);
     if (mk.w > 0.5) {
       // in the cave: black water that carries the lamp and the daylight of the mouth
@@ -385,13 +387,13 @@ vec3 shade_gold(float id, vec3 p, vec3 n, vec3 rd, vec3 q, float t, vec2 fc, flo
     // the smoke glows from within, redder where it is young and the lava lights it from below
     float young = smoothstep(0.32, 0.0, age);
     vec3 smoke = vec3(0.075, 0.030, 0.006)*(0.3 + 1.6*wrap*wrap) + vec3(0.9, 0.16, 0.02)*young*young*(0.25 + 0.75*max(-n.y, 0.0));
-    smoke += sunC*G_GOLD.rgb*0.05*pow(1.0 - ndv, 2.0)*wrap;
+    smoke += sunC*G_GOLD.rgb*0.05*pow(max(1.0 - ndv, 0.0), 2.0)*wrap;
     vec2 hb = gdBump(u*14.0 + age*30.0);
     vec3 nl = normalize(n + vec3(hb.x, hb.y, -hb.x)*0.9);
     vec3 leaf = gdLit(G_GOLD, 0.36, nl, rd, 1.0) + G_GOLD.rgb*(0.16 + 0.6*young);
     c = mix(smoke, leaf, curl*(0.9 - 0.45*smoothstep(0.55, 1.0, age)));
     // the puff thins at its rim and as it ages
-    float thin = pow(1.0 - ndv, 3.0)*0.85 + 0.5*smoothstep(0.7, 1.0, age);
+    float thin = pow(max(1.0 - ndv, 0.0), 3.0)*0.85 + 0.5*smoothstep(0.7, 1.0, age);
     c = mix(c, gdSky(rd), min(thin, 0.92)*(1.0 - 0.6*curl));
     return gdHaze(c, rd, t);
   }
