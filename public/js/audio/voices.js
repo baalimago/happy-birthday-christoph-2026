@@ -58,8 +58,12 @@ function lfo(ctx, param, hz, depth, type = 'sine') {
 }
 
 /**
- * @typedef {{ level: GainNode, tone?: AudioParam, pitch?: AudioParam[] }} Bed
- *   `level` is driven 0..1 by the mix; `tone` is a filter frequency; `pitch` oscillator frequencies
+ * @typedef {{
+ *   level: GainNode, tone?: AudioParam, pitch?: AudioParam[], gust?: AudioParam[], swing?: AudioParam[]
+ * }} Bed
+ *   `level` is driven 0..1 by the mix; `tone` is a filter frequency; `pitch` oscillator frequencies;
+ *   `gust` gains and `swing` detunes or pans that soundscape.js moves by hand from weather.js, so
+ *   nothing rises and falls on a fixed cycle
  */
 
 /**
@@ -67,7 +71,7 @@ function lfo(ctx, param, hz, depth, type = 'sine') {
  * @param {AudioContext | OfflineAudioContext} ctx
  * @param {AudioNode} out
  * @param {{ white: AudioBuffer, brown: AudioBuffer }} noise
- * @returns {Record<'sea' | 'wash' | 'wind' | 'whistle' | 'luff' | 'engine', Bed>}
+ * @returns {Record<'sea' | 'wash' | 'wind' | 'whistle' | 'luff' | 'engine' | 'rocket', Bed>}
  */
 export function beds(ctx, out, noise) {
   return {
@@ -77,6 +81,7 @@ export function beds(ctx, out, noise) {
     whistle: whistle(ctx, out, noise.white),
     luff: luff(ctx, out, noise.white),
     engine: engine(ctx, out),
+    rocket: rocket(ctx, out, noise),
   };
 }
 
@@ -98,6 +103,8 @@ function sea(ctx, out, brown) {
   const tone = ctx.createConstantSource();
   tone.offset.value = 500;
   tone.start();
+  /** @type {AudioParam[]} */
+  const swells = [];
   [
     [-0.6, 0.083],
     [0.6, 0.117],
@@ -110,7 +117,7 @@ function sea(ctx, out, brown) {
     lfo(ctx, lp.frequency, hz * 1.3, 180);
     const swell = ctx.createGain();
     swell.gain.value = 0.55;
-    lfo(ctx, swell.gain, hz, 0.4);
+    swells.push(swell.gain);
     const hp = ctx.createBiquadFilter(); // keep the rumble out of the sub-bass speakers cannot play
     hp.type = 'highpass';
     hp.frequency.value = 90;
@@ -121,7 +128,7 @@ function sea(ctx, out, brown) {
     p.pan.value = pan;
     loop(ctx, brown).connect(hp).connect(hp2).connect(lp).connect(swell).connect(p).connect(level);
   });
-  return { level, tone: tone.offset };
+  return { level, tone: tone.offset, gust: swells };
 }
 
 /**
@@ -138,7 +145,6 @@ function wash(ctx, out, white) {
   bp.frequency.value = 900;
   const slap = ctx.createGain();
   slap.gain.value = 0.6;
-  lfo(ctx, slap.gain, 0.55, 0.35);
   loop(ctx, white).connect(bp).connect(slap).connect(level);
   return { level, tone: bp.frequency };
 }
@@ -151,20 +157,34 @@ function wash(ctx, out, white) {
 function wind(ctx, out, white) {
   const level = silentGain(ctx);
   level.connect(out);
-  const bp = ctx.createBiquadFilter();
-  bp.type = 'bandpass';
-  bp.Q.value = 0.9;
-  bp.frequency.value = 500;
-  lfo(ctx, bp.detune, 0.071, 500);
-  lfo(ctx, bp.detune, 0.19, 200);
-  const gust = ctx.createGain();
-  gust.gain.value = 0.6;
-  lfo(ctx, gust.gain, 0.071, 0.3);
-  lfo(ctx, gust.gain, 0.23, 0.1);
-  const p = ctx.createStereoPanner();
-  lfo(ctx, p.pan, 0.04, 0.5);
-  loop(ctx, white).connect(bp).connect(gust).connect(p).connect(level);
-  return { level, tone: bp.frequency };
+  const tone = ctx.createConstantSource();
+  tone.offset.value = 500;
+  tone.start();
+  /** @type {AudioParam[]} */
+  const gust = [];
+  /** @type {AudioParam[]} */
+  const swing = [];
+  // A low roar and a higher whoosh, each with its own gusts and its own place in the stereo field.
+  [
+    [0.6, 0.8, -0.4],
+    [1.9, 1.4, 0.45],
+  ].forEach(([mult, q, pan]) => {
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.Q.value = q;
+    bp.frequency.value = 0;
+    const scale = ctx.createGain();
+    scale.gain.value = mult;
+    tone.connect(scale).connect(bp.frequency);
+    const g = ctx.createGain();
+    g.gain.value = 0.6;
+    const p = ctx.createStereoPanner();
+    p.pan.value = pan;
+    loop(ctx, white).connect(bp).connect(g).connect(p).connect(level);
+    gust.push(g.gain);
+    swing.push(bp.detune, p.pan);
+  });
+  return { level, tone: tone.offset, gust, swing };
 }
 
 /**
@@ -175,19 +195,20 @@ function wind(ctx, out, white) {
 function whistle(ctx, out, white) {
   const level = silentGain(ctx);
   level.connect(out);
-  const voices = [1180, 1630].map((hz, i) => {
+  /** @type {AudioParam[]} */
+  const gains = [];
+  const voices = [1180, 1630].map((hz) => {
     const bp = ctx.createBiquadFilter();
     bp.type = 'bandpass';
     bp.Q.value = 22;
     bp.frequency.value = hz;
-    lfo(ctx, bp.detune, 0.11 + i * 0.07, 120);
     const g = ctx.createGain();
     g.gain.value = 0.35;
-    lfo(ctx, g.gain, 0.09 + i * 0.05, 0.35);
+    gains.push(g.gain);
     loop(ctx, white).connect(bp).connect(g).connect(level);
     return bp.frequency;
   });
-  return { level, pitch: voices };
+  return { level, pitch: voices, gust: gains };
 }
 
 /**
@@ -249,6 +270,56 @@ function engine(ctx, out) {
   });
   lp.connect(chug).connect(level);
   return { level, pitch: [...pitch, thump.frequency] }; // [fundamental, 2nd, 3rd, chug]
+}
+
+/**
+ * The rocket on the stern: a roaring jet of noise over a low rumble, brighter the faster it goes.
+ * @param {AudioContext | OfflineAudioContext} ctx @param {AudioNode} out
+ * @param {{ white: AudioBuffer, brown: AudioBuffer }} noise
+ * @returns {Bed}
+ */
+function rocket(ctx, out, noise) {
+  const level = silentGain(ctx);
+  level.connect(out);
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 1200;
+  lp.Q.value = 0.9;
+  const roar = ctx.createGain();
+  roar.gain.value = 0.7;
+  lfo(ctx, roar.gain, 23, 0.15, 'square'); // the flame flutters
+  loop(ctx, noise.white).connect(lp).connect(roar).connect(level);
+  const rumble = ctx.createBiquadFilter();
+  rumble.type = 'lowpass';
+  rumble.frequency.value = 160;
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 45;
+  const rg = ctx.createGain();
+  rg.gain.value = 1.2;
+  loop(ctx, noise.brown).connect(hp).connect(rumble).connect(rg).connect(level);
+  return { level, tone: lp.frequency };
+}
+
+/**
+ * A drop of water falling into a pool, somewhere in the cave.
+ * @param {AudioContext | OfflineAudioContext} ctx @param {AudioNode} out @param {number} t
+ * @param {number} gain
+ */
+export function drip(ctx, out, t, gain) {
+  const f = 900 + Math.random() * 1600;
+  const osc = ctx.createOscillator();
+  osc.frequency.setValueAtTime(f * 0.6, t);
+  osc.frequency.exponentialRampToValueAtTime(f * 1.6, t + 0.06); // the bubble rings upward
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(gain, t + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+  const p = ctx.createStereoPanner();
+  p.pan.value = Math.random() * 1.6 - 0.8;
+  osc.connect(g).connect(p).connect(out);
+  osc.start(t);
+  osc.stop(t + 0.15);
 }
 
 // One-shots. Each takes the time to start at and builds its own short-lived nodes.
@@ -470,6 +541,11 @@ export function play(ctx, out, white, cue, t) {
       break;
     case 'goal':
       peal(ctx, out, t, false);
+      break;
+    case 'ignite': // a fizz, a bang and a rising whoosh as the rocket lights
+      burst(ctx, out, white, t, 0.15, 5000, 0.4);
+      thud(ctx, out, white, t + 0.35, 1.2);
+      burst(ctx, out, white, t + 0.35, 0.6, 1200, 1.2);
       break;
     case 'finale':
       peal(ctx, out, t, true);

@@ -71,7 +71,8 @@ test('a worn hull creaks more', () => {
 
 test('levels are always finite numbers, even from nonsense', () => {
   const l = mix({ log: log({ speed: NaN, windSpeed: Infinity, trim: -3 }) }, { hull: NaN });
-  for (const [k, v] of Object.entries(l)) assert.ok(Number.isFinite(v), `${k} = ${v}`);
+  for (const [k, v] of Object.entries(l))
+    assert.ok(v === null || Number.isFinite(v), `${k} = ${v}`);
 });
 
 test('cues: a new port rings the bells; an old one a single bell', () => {
@@ -121,4 +122,20 @@ test('cues: trimming the sheet clicks the winch', () => {
 test('cues: weighing anchor', () => {
   assert.deepEqual(step({}, {}, { sailed: false }, { sailed: true }), ['anchor']);
   assert.deepEqual(step({}, {}, { sailed: true }, { sailed: true }), []);
+});
+
+test('the new weather fields pass through; the rocket roars and lights with a bang', () => {
+  const l = mix({ log: log({ gust: 0.7, sea: 0.4, cave: true, rocket: true, speed: 60 }) });
+  assert.equal(l.gust, 0.7);
+  assert.equal(l.seaState, 0.4);
+  assert.equal(l.cave, 1);
+  assert.equal(l.rocket, 1);
+  assert.equal(l.luff, 0);
+  assert.equal(l.dark, 1);
+  assert.deepEqual(step({}, { rocket: true }), ['ignite']);
+});
+
+test('windSpeed 0.35..1.6 maps onto the whole range', () => {
+  assert.equal(mix({ log: log({ windSpeed: 0.35 }) }).breeze, 0);
+  assert.equal(mix({ log: log({ windSpeed: 1.6 }) }).breeze, 1);
 });
