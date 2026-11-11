@@ -3,6 +3,7 @@
 
 import { VIEWS } from './views.js';
 import { FRAGMENT, PORTS, VERTEX } from './shaders/index.js';
+import { RUNS } from './shaders/scene.js';
 
 /** @typedef {import('./views.js').View} View */
 
@@ -39,8 +40,12 @@ import { FRAGMENT, PORTS, VERTEX } from './shaders/index.js';
  *   from the centre
  * @property {number} end 0..1, the sunset: the share of ports found
  * @property {readonly [number, number, number]} sun direction to the sun, in world coordinates
- * @property {{ from: number, speed: number }} wind the compass bearing it blows from, and its
- *   strength (about 0.55..1.25)
+ * @property {{ from: number, speed: number, gust?: number, sea?: number }} wind the compass
+ *   bearing it blows from and its strength (about 0.35 in a lull to 1.6 in a squall); gust, 0..1,
+ *   a gust passing over the boat; sea, 0..1, the sea state from calm to a steep running sea
+ *   (left out, it follows the wind's strength)
+ * @property {number} [rocket] 1 while the rocket strapped to the stern burns; 0 or absent, there
+ *   is no rocket
  */
 
 /**
@@ -68,14 +73,31 @@ const RELIEF = 1.5;
 const WOODS = 4.4;
 /** Ground that climbs faster than this (rise over run) carries no trees. */
 const STEEP = 1.3;
-/** Wave trains: wavenumber along their run, and how fast their phase turns (see sea() in GLSL). */
-const WAVES = /** @type {const} */ ([
-  [0.85, 1.1],
-  [1.9, 1.7],
-  [0.3, 0.12],
-]);
-/** The second wave train runs this far off the wind, in radians. */
+/** The second wave train runs this far off the wind, in radians (TRAINS[1]). */
 const CROSS_SEA = 0.5;
+/**
+ * Wave trains: wavenumber along the run, how fast the phase turns, and the way the train runs,
+ * either `off` radians off the wind or a fixed compass heading `to` (the swell does not care
+ * about the wind). The first three are uWave in GLSL (see sea()), the rest uPhase and uRun: the
+ * swell, two more wind waves, and the four trains of ripples (see rippleSlope()).
+ * @type {readonly { number: number, rate: number, off?: number, to?: number }[]}
+ */
+const TRAINS = [
+  { number: 0.85, rate: 1.1, off: 0 },
+  { number: 1.9, rate: 1.7, off: CROSS_SEA },
+  { number: 0.3, rate: 0.12, off: Math.PI / 2 },
+  { number: 0.21, rate: 0.42, to: 2.5 },
+  { number: 1.31, rate: 1.35, off: -0.38 },
+  { number: 3.4, rate: 2.4, off: 1.15 },
+  { number: 2.7, rate: 2.6, off: 0.12 },
+  { number: 4.6, rate: 3.4, off: -0.5 },
+  { number: 7.9, rate: 4.5, off: 0.61 },
+  { number: 13.1, rate: 5.8, off: -0.3 },
+];
+/** The weather drifts downwind this fast, in units a second, at a wind strength of one. */
+const DRIFT = 6;
+/** The wind's frame wraps round here, to keep its numbers small enough for the GPU. */
+const LEE_WRAP = 8192;
 
 const UNIFORMS = /** @type {const} */ ([
   'uRes',
@@ -109,6 +131,12 @@ const UNIFORMS = /** @type {const} */ ([
   'uWindSpeed',
   'uWave',
   'uPennant',
+  'uRocket',
+  'uSea',
+  'uGust',
+  'uPhase',
+  'uRun',
+  'uLee',
 ]);
 
 /** @typedef {Record<typeof UNIFORMS[number], WebGLUniformLocation | null>} Locations */
@@ -345,7 +373,11 @@ export function createRenderer(canvas, terrain) {
 
   const found = new Float32Array(PORTS);
   /** Phases of the wave trains under the boat, so the swell stays put on the water as she moves. */
-  const wave = new Float32Array(WAVES.length);
+  const wave = new Float32Array(RUNS + 3);
+  /** The way each train runs, world x and z. */
+  const runs = new Float32Array((RUNS + 3) * 2);
+  /** Where the boat is in the wind's drifting frame: down the wind, across it. */
+  const lee = [0, 0];
   /** @type {{ x: number, z: number } | null} */
   let last = null;
   /** Share of the full resolution in use; falls when frames run long, never rises. */
@@ -390,20 +422,32 @@ export function createRenderer(canvas, terrain) {
   /**
    * Turn the wave trains' phases on by one frame: time passes, and the boat moves over them.
    * @param {Frame} frame
-   * @param {readonly [number, number][]} runs the way each train runs, world x and z
+   * @param {number} wx the way the wind blows, world x
+   * @param {number} wz and z
    */
-  function swell(frame, runs) {
+  function swell(frame, wx, wz) {
     const { boat } = frame;
     let dx = last ? boat.x - last.x : 0;
     let dz = last ? boat.z - last.z : 0;
-    if (Math.hypot(dx, dz) > 40) dx = dz = 0; // she was moved, not sailed
+    if (Math.hypot(dx, dz) > 60) dx = dz = 0; // she was moved, not sailed
     last = { x: boat.x, z: boat.z };
     const dt = Math.min(Math.max(frame.dt, 0), HITCH);
-    for (let i = 0; i < WAVES.length; i++) {
-      const [number, rate] = WAVES[i];
-      const phase = wave[i] + number * (dx * runs[i][0] + dz * runs[i][1]) - rate * dt;
+    for (let i = 0; i < RUNS + 3; i++) {
+      const { number, rate, off, to } = TRAINS[i];
+      const cos = Math.cos(off ?? 0);
+      const sin = Math.sin(off ?? 0);
+      const rx = to === undefined ? wx * cos - wz * sin : Math.sin(to);
+      const rz = to === undefined ? wx * sin + wz * cos : Math.cos(to);
+      runs[i * 2] = rx;
+      runs[i * 2 + 1] = rz;
+      const phase = wave[i] + number * (dx * rx + dz * rz) - rate * dt;
       wave[i] = phase - Math.floor(phase / (2 * Math.PI)) * 2 * Math.PI;
     }
+    // The wind's frame: she moves through it, and it drifts downwind.
+    const along = lee[0] + dx * wx + dz * wz - DRIFT * frame.wind.speed * dt;
+    const across = lee[1] - dx * wz + dz * wx;
+    lee[0] = along - Math.floor(along / LEE_WRAP) * LEE_WRAP;
+    lee[1] = across - Math.floor(across / LEE_WRAP) * LEE_WRAP;
   }
 
   return {
@@ -420,11 +464,7 @@ export function createRenderer(canvas, terrain) {
       const wz = -Math.cos(wind.from);
       const cx = wx * Math.cos(CROSS_SEA) - wz * Math.sin(CROSS_SEA);
       const cz = wx * Math.sin(CROSS_SEA) + wz * Math.cos(CROSS_SEA);
-      swell(frame, [
-        [wx, wz],
-        [cx, cz],
-        [-wz, wx],
-      ]);
+      swell(frame, wx, wz);
       // The pennant streams with the wind she feels: the true wind less her own way.
       const ax = wx * wind.speed * 8 - sin * boat.speed;
       const az = wz * wind.speed * 8 - cos * boat.speed;
@@ -471,8 +511,17 @@ export function createRenderer(canvas, terrain) {
       gl.uniform1i(at.uMode, Math.max(0, VIEWS.indexOf(frame.view)));
       gl.uniform4f(at.uWind, wx, wz, cx, cz);
       gl.uniform1f(at.uWindSpeed, wind.speed);
-      gl.uniform3fv(at.uWave, wave);
+      gl.uniform3fv(at.uWave, wave.subarray(0, 3));
+      gl.uniform1fv(at.uPhase, wave.subarray(3));
+      gl.uniform2fv(at.uRun, runs.subarray(6));
+      gl.uniform2f(at.uLee, lee[0], lee[1]);
+      gl.uniform1f(at.uGust, Math.min(1, Math.max(0, wind.gust ?? 0)));
+      gl.uniform1f(
+        at.uSea,
+        Math.min(1, Math.max(0, wind.sea ?? ((wind.speed - 0.35) / 1.25) * 0.8)),
+      );
       gl.uniform2f(at.uPennant, px, pz);
+      gl.uniform1f(at.uRocket, frame.rocket ? 1 : 0);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     },
 

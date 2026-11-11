@@ -14,7 +14,15 @@
 // What a hit is (id): 1 sea, 2 land, 3 hull, 4 mainsail, 5 mast, 6 jib, 7 pennant, 8 the wall of
 // the sea cave, 9 the volcano's plume, 10 + i the lighthouse (or the cave lights) of port i.
 // scene.js has the marks they carry: seaMarks, landMarks, lightMarks, caveLight, haze; gHit is
-// the id of what the pixel shows (0 for sky), for post_<id>.
+// the id of what the pixel shows (0 for sky), gT how far off it is and gRo the camera, for
+// post_<id>. scene.js also has light and weather a view may use: rippleSlope, sunOverLand,
+// sunOverSea, sunPastBoat, wakeFoam, plumeSoft, gustAt, seaFoam, leeAt, and rocketMark, which tells
+// the rocket on the stern (ids 3 and 7, like the hull and the pennant) from the boat.
+//
+// A view that exports smoke: true draws the volcano's plume itself, as smoke over the finished
+// picture: it defines
+//   vec3 smoke_<id>(vec3 col, vec3 ro, vec3 rd, float t)
+// (col what the pixel shows, ro the camera, t how far off that is) and never gets a hit with id 9.
 
 import { VIEWS } from '../views.js';
 import { PORTS, SCENE } from './scene.js';
@@ -25,7 +33,7 @@ import { chart } from './chart.js';
 
 export { PORTS };
 
-/** @typedef {{ id: string, glsl: string }} ViewShader */
+/** @typedef {{ id: string, glsl: string, smoke?: boolean }} ViewShader */
 
 /** @type {ViewShader[]} */
 const SHADERS = [poster, terminal, gold, chart];
@@ -44,6 +52,21 @@ function dispatch(call) {
     .reverse()
     .join('\n    else ');
 }
+
+/** True in the shader for the views that draw the plume themselves. */
+const SMOKE =
+  SHADERS.filter((shader) => shader.smoke)
+    .map(
+      (shader) =>
+        `uMode == ${VIEWS.indexOf(/** @type {import('../views.js').View} */ (shader.id))}`,
+    )
+    .join(' || ') || 'false';
+const SMOKES = SHADERS.filter((shader) => shader.smoke)
+  .map(
+    (shader) =>
+      `if (uMode == ${VIEWS.indexOf(/** @type {import('../views.js').View} */ (shader.id))}) col = smoke_${shader.id}(col, ro, rd, t);`,
+  )
+  .join('\n  ');
 
 export const VERTEX = /* glsl */ `#version 300 es
 void main(){
@@ -70,18 +93,22 @@ void main(){
   vec3 rd = toWorld(rdb);
   vec3 ro = vec3(W(cam), cam.y).xzy;
 
+  rideWaves();
   float t = FAR, id = 0.0, part = 0.0, age = 0.0;
   vec3 n = vec3(0.0, 1.0, 0.0), pn;
 
   float tb = marchBoat(cam, rdb, t, part);
   if (tb > 0.0) { t = tb; id = part; }
   props(ro, rd, t, id);
-  float tp = plume(ro, rd, t, pn, age);
-  if (tp > 0.0) { t = tp; id = 9.0; }
+  bool smoke = ${SMOKE};
+  if (!smoke) {
+    float tp = plume(ro, rd, t, pn, age);
+    if (tp > 0.0) { t = tp; id = 9.0; }
+  }
 
   // the land, as far as the ray stays above the troughs of the sea
   float kind;
-  float tl = marchLand(ro, rd, rd.y < -1e-4 ? min(t, (ro.y + 0.35)/-rd.y) : t, kind);
+  float tl = marchLand(ro, rd, rd.y < -1e-4 ? min(t, (ro.y + 0.7)/-rd.y) : t, kind);
   if (tl > 0.0) {
     // ground under the water is the sea's to draw
     vec3 p = ro + rd*tl;
@@ -106,6 +133,8 @@ void main(){
   id = lit;
 
   gHit = id;
+  gT = id > 0.5 ? t : FAR;
+  gRo = ro;
   vec3 col;
   if (id > 0.5) {
     vec3 p = dot_ ? at : ro + rd*t;
@@ -124,6 +153,7 @@ void main(){
   } else {
     ${dispatch((id) => `col = sky_${id}(rd, fc, k)`)}
   }
+  ${SMOKES}
   ${dispatch((id) => `col = post_${id}(col, rd, fc, k)`)}
   outColor = vec4(col, 1.0);
 }`;
