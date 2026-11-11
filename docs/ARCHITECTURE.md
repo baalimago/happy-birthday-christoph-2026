@@ -236,7 +236,7 @@ export function createRenderer(canvas, terrain)   // uploads the height grid onc
 
 ## Elements
 
-- `<voyage-sea>` (lead): the loop. Heaves to (stops the clock) while the map is open.
+- `<voyage-sea>` (lead): the loop. Heaves to (stops the clock) while a card is open; the map does not stop her.
 - `<voyage-hud>` (HUD worker): objectives, compass, wind and trim, speed, hull, engine, views, notices.
 - `<voyage-chart>` (HUD worker): the map. Listens for `M` and its own button, draws `getTerrain()` on a 2D canvas
   as a sea chart with place names, a compass rose and a scale. The only mark is an anchor at the home harbour (Lorentz, 2026-11-11: unmarked was too hard); no boat, no ports, no route.

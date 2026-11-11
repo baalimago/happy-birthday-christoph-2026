@@ -1,7 +1,8 @@
 // Draws the sea chart: the height grid as an engraved paper chart, north up. Coast, hills, woods,
 // shoals, names, a rose and a scale, and an anchor at the home harbour, where the voyage begins.
 // `markChart` lays that drawing on the visible canvas and adds what changes: a red cross on each
-// of the seven places (ringed and ticked once found) and the boat where she lies.
+// of the seven places (ringed and ticked once found). The boat is not shown: finding where she
+// is, by compass and coastline, is the navigator's work (Lorentz, 2026-11-11).
 
 import { START } from '#game/chart-data.js';
 import { noise } from '#game/terrain.js';
@@ -754,14 +755,13 @@ export function drawChart(canvas, terrain, features) {
 }
 
 /**
- * Copy the drawn chart onto the visible canvas and mark the places to find and the boat.
+ * Copy the drawn chart onto the visible canvas and mark the places to find.
  * @param {HTMLCanvasElement} canvas the canvas on show
  * @param {HTMLCanvasElement} base the chart as drawChart left it, the same size
  * @param {Terrain} terrain
  * @param {readonly string[]} found ids of the places found
- * @param {{ x: number, z: number, heading: number }} boat
  */
-export function markChart(canvas, base, terrain, found, boat) {
+export function markChart(canvas, base, terrain, found) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   const s = canvas.width / SHEET;
@@ -802,27 +802,4 @@ export function markChart(canvas, base, terrain, found, boat) {
       ctx.stroke();
     }
   }
-
-  // The boat: a dart pointing the way she heads, with "You" beside it.
-  ctx.save();
-  ctx.translate(mapX(boat.x), mapY(boat.z));
-  ctx.font = `italic ${17 * s}px ${SERIF}`;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = INK;
-  write(ctx, 'You', 15 * s, 0, 4 * s);
-  ctx.rotate(boat.heading);
-  const b = 11 * s;
-  ctx.beginPath();
-  ctx.moveTo(0, -b * 1.3);
-  ctx.lineTo(b * 0.75, b);
-  ctx.lineTo(0, b * 0.5);
-  ctx.lineTo(-b * 0.75, b);
-  ctx.closePath();
-  ctx.strokeStyle = PAPER;
-  ctx.lineWidth = 5 * s;
-  ctx.stroke();
-  ctx.fillStyle = INK;
-  ctx.fill();
-  ctx.restore();
 }

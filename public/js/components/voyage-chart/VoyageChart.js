@@ -1,6 +1,6 @@
 import { passage } from '#stores/passage.js';
 import { voyage } from '#stores/voyage.js';
-import { FEATURES, START } from '#game/chart-data.js';
+import { FEATURES } from '#game/chart-data.js';
 import { getTerrain } from '#game/terrain.js';
 import { drawChart, markChart } from './draw.js';
 
@@ -49,7 +49,7 @@ export class VoyageChart extends HTMLElement {
     document.addEventListener('keydown', (event) => this.#key(event), { signal });
     dialog?.addEventListener('close', () => passage.unroll(false), { signal });
     passage.addEventListener('change', () => this.#follow(), { signal });
-    // The boat's place and the places found may change while the chart is out.
+    // A place may be found while the chart is out: she sails on under it.
     voyage.addEventListener('change', () => this.#dialog?.open && this.#mark(), { signal });
 
     if (sheet) {
@@ -174,13 +174,12 @@ export class VoyageChart extends HTMLElement {
     }
   }
 
-  /** Lays the chart on the canvas with the places to find and the boat marked as they stand now. */
+  /** Lays the chart on the canvas with the places to find marked as they stand now. */
   #mark() {
     const canvas = this.#canvas;
     const base = this.#base;
     if (!canvas || !base) return;
-    const { found, berth } = voyage.state;
-    markChart(canvas, base, getTerrain(), found, berth ?? START);
+    markChart(canvas, base, getTerrain(), voyage.state.found);
   }
 
   /** The size at which the whole chart fits in the sheet. */

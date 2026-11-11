@@ -122,7 +122,6 @@ export class VoyageSea extends HTMLElement {
   #watch = 0;
   #sinceLog = 0;
   #sinceMoor = 0;
-  #charting = false;
   /** Seconds left of going down, after the hull gives out. */
   #sinking = 0;
   #hold = 0;
@@ -353,10 +352,8 @@ export class VoyageSea extends HTMLElement {
     // Every card is read at rest, like the book and the map: the greeting and the sailing orders
     // too, or the wind would carry her off (and close them) before they are read.
     const ashore = this.querySelector('voyage-log [data-card][data-open]') !== null;
-    const hoveTo = passage.state.reading || passage.state.chart || ashore;
-    // The chart shows where she lies: tell the log as the map is unrolled.
-    if (passage.state.chart && !this.#charting) this.#moor();
-    this.#charting = passage.state.chart;
+    // Not the map, though: a chart is read under way, as at sea.
+    const hoveTo = passage.state.reading || ashore;
     const wind = windAt(this.#watch, this.#boat.x, this.#boat.z);
     // Hove to, the clock stops but the instruments still read.
     const step = hoveTo || this.#sinking > 0 ? 0 : dt;
