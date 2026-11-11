@@ -185,7 +185,7 @@ export function createFauna(seed = 1) {
   function populate(boat, water, out) {
     if (lives.length >= SLOTS - 2) return;
     // A pod of dolphins now and then.
-    if (count(lives, 'dolphin') === 0 && rand() < 0.004) {
+    if (count(lives, 'dolphin') === 0 && rand() < 0.001) {
       const at = spot(boat, water, 35, 80, 1.2);
       if (at) {
         const n = 3 + Math.floor(rand() * 3);

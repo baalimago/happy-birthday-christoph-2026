@@ -28,7 +28,7 @@
       position: fixed;
       inset-inline: 0;
       inset-block-end: 12vh;
-      z-index: 6;
+      z-index: 2147483600; /* over everything, the birthday paper included */
       display: grid;
       gap: 0.5rem;
       inline-size: min(20rem, 80vw);

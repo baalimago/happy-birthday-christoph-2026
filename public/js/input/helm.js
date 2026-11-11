@@ -2,7 +2,7 @@
 //   steer        ArrowLeft / ArrowRight, or A / D
 //   sheet        ArrowUp lets the sails out, ArrowDown hauls them in (or W / S)
 //   engine       E switches it on and off
-//   rocket       R five times in quick succession lights it, and five more puts it out (Amin mode)
+//   rocket       R five times in quick succession lights it, and R once more puts it out (Amin mode)
 
 /**
  * @typedef {{ left: boolean, right: boolean, out: boolean, in: boolean, engine: boolean, rocket: boolean }} Helm
@@ -63,6 +63,14 @@ export function takeHelm(root, signal) {
   let fizzle;
   signal.addEventListener('abort', () => clearTimeout(fizzle));
   const pressFuse = () => {
+    // Lit, one press puts it out.
+    if (helm.rocket) {
+      helm.rocket = false;
+      burnt = 0;
+      lastPress = 0;
+      showFuse();
+      return;
+    }
     const now = performance.now();
     burnt = now - lastPress < FUSE_GAP ? burnt + 1 : 1;
     lastPress = now;

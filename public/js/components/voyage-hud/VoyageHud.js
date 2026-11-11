@@ -153,6 +153,9 @@ export class VoyageHud extends HTMLElement {
     }
   }
 
+  /** @type {string[] | undefined} the views unlocked at the last render */
+  #unlocked;
+
   /** @returns {Record<string, string>} the view each port unlocks, read from the port cards */
   #portViews() {
     /** @type {Record<string, string>} */
@@ -171,6 +174,9 @@ export class VoyageHud extends HTMLElement {
     if (!(event.target instanceof Element)) return;
     const button = event.target.closest('button[data-view]');
     if (!(button instanceof HTMLButtonElement) || !this.contains(button)) return;
+    for (const other of this.querySelectorAll('button[data-fresh]')) {
+      other.removeAttribute('data-fresh');
+    }
     if (button.dataset.view) voyage.look(button.dataset.view);
   }
 
@@ -241,6 +247,16 @@ export class VoyageHud extends HTMLElement {
     }
     const group = this.querySelector('.views');
     if (group instanceof HTMLElement) group.hidden = unlocked.length < 2;
+    // A view just unlocked is shown off at once: the sea turns to it, and its button is marked
+    // until the captain picks a view.
+    const fresh = this.#unlocked ? unlocked.filter((id) => !this.#unlocked?.includes(id)) : [];
+    this.#unlocked = unlocked;
+    if (fresh.length === 1 && unlocked.length > 1) {
+      for (const button of this.querySelectorAll('button[data-view]')) {
+        button.toggleAttribute('data-fresh', button.getAttribute('data-view') === fresh[0]);
+      }
+      voyage.look(fresh[0]);
+    }
 
     this.#renderInstruments();
   }
@@ -310,7 +326,7 @@ export class VoyageHud extends HTMLElement {
     // Speed, and what drives the boat.
     const knots = Math.max(0, speed).toFixed(1);
     let power = 'under sail';
-    if (passage.state.log.rocket) power = 'Amin mode';
+    if (passage.state.log.rocket) power = 'Amin mode (R stops it)';
     else if (engine) power = 'under engine';
     else if (speed < 0.05) power = 'stopped';
     this.#say('[data-speed]', knots);

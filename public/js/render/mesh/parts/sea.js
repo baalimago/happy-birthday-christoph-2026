@@ -16,7 +16,7 @@ const GROWTH = 1.6;
 const REACH = 4000;
 /** The wind's waves: how many to a unit of water, and how many pass in a second. */
 const WAVE_K = 0.14;
-const WAVE_W = 0.3;
+const WAVE_W = 0.09;
 /** How high the wake lies over the sheet, to win the depth test. */
 const WAKE_LIFT = 0.03;
 const WAKE_ROWS = 10;
@@ -67,8 +67,8 @@ in vec4 vMix;
 out vec4 outColor;
 void main(){
   vec3 q = abs(fract(vec3(dot(vW - uBoat.xy, uWave.xy) + uWave.z,
-                          dot(vW, vec2(0.30, 0.18)) + uTime*0.27,
-                          dot(vW, vec2(-0.14, 0.37)) - uTime*0.21)) - 0.5)*4.0 - 1.0;
+                          dot(vW, vec2(0.30, 0.18)) + uTime*0.07,
+                          dot(vW, vec2(-0.14, 0.37)) - uTime*0.055)) - 0.5)*4.0 - 1.0;
   float chop = q.y*q.z;
   // whitecaps where the crests of two waves meet
   float foam = clamp(7.0*(q.x*chop - uWave.w), 0.0, 0.8);
@@ -117,7 +117,7 @@ in float vHaze;
 out vec4 outColor;
 void main(){
   float s = max(vB.y, 0.0), x = abs(vB.x);
-  float n = 0.5 + 0.5*sin(vW.x*4.1 + uTime*0.8)*sin(vW.y*3.7 - uTime*1.1);
+  float n = 0.5 + 0.5*sin(vW.x*4.1 + uTime*0.35)*sin(vW.y*3.7 - uTime*0.45);
   // the two arms of the V, breaking up as they fall astern
   float gone = 1.0 - smoothstep(0.2*uWake.x, uWake.x, s);
   float wide = 0.05 + 0.022*s;

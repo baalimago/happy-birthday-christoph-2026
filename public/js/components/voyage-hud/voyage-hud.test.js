@@ -110,10 +110,15 @@ test('offers a view once its port is found and switches to it', async ({ page })
   await discover(page, [unlocks.gold]);
   await expect(views).toBeVisible();
   await expect(views.getByRole('button')).toHaveText(['Poster', 'Gold']);
+  // The new view is shown off at once, and its button beckons until a view is picked.
+  await expect(views.getByRole('button', { name: 'Gold' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(views.getByRole('button', { name: 'Gold' })).toHaveAttribute('data-fresh', '');
+  await views.getByRole('button', { name: 'Poster' }).press('Enter');
   await expect(views.getByRole('button', { name: 'Poster' })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
+  await expect(views.getByRole('button', { name: 'Gold' })).not.toHaveAttribute('data-fresh');
 
   await views.getByRole('button', { name: 'Gold' }).press('Enter');
   await expect(views.getByRole('button', { name: 'Gold' })).toHaveAttribute('aria-pressed', 'true');
