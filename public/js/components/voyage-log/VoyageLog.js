@@ -82,8 +82,9 @@ export class VoyageLog extends HTMLElement {
     if (next) {
       this.#open(next.getAttribute('data-next') ?? 'intro');
     } else if (event.target.closest('[data-reset]')) {
+      // A new voyage begins where the first did: at the sailing orders, with the boat held.
       voyage.reset();
-      this.#close();
+      this.#open('intro');
     } else if (event.target.closest('[data-close]')) {
       this.#close();
     }

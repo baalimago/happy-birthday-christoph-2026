@@ -6,6 +6,13 @@ import { test, expect } from '@playwright/test';
  * @param {import('@playwright/test').Page} page
  */
 async function openHud(page) {
+  // A captain who has sailed before: a new voyage would open the splash, which hides the HUD and chart.
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      'philosophers-voyage:v2',
+      JSON.stringify({ found: [], view: 'poster', sailed: true }),
+    ),
+  );
   await page.route('**/voyage-sea/voyage-sea.js', (route) => route.abort());
   await page.goto('/');
   await page.evaluate(async () => {
@@ -64,6 +71,8 @@ function rotation(locator) {
 
 test('ticks objectives off and marks the next one as the current step', async ({ page }) => {
   const hud = await openHud(page);
+  // openHud seeds a captain who has sailed; start this one over.
+  await page.evaluate(async () => (await import('#stores/voyage.js')).voyage.reset());
   const sail = hud.locator('li[data-goal="sail"]');
   const port = hud.locator('li[data-goal="port:wittgenstein"]');
   await expect(hud.locator('li[data-done]')).toHaveCount(0);

@@ -148,11 +148,6 @@
     color: var(--hud-bg);
   }
 
-  .helm [aria-pressed='false'] .on,
-  .helm [aria-pressed='true'] .off {
-    display: none;
-  }
-
   .helm svg {
     flex: none;
     inline-size: 1.25rem;
@@ -230,9 +225,11 @@
 
     @media (width < 48rem) or (height < 30rem) {
       inset-block: auto calc(0.75rem + env(safe-area-inset-bottom));
-      inset-inline: 50% auto;
+      /* Centred without a transform, which would capture the reading panel's fixed position. */
+      inset-inline: 0;
+      inline-size: fit-content;
+      margin-inline: auto;
       flex-direction: column-reverse;
-      translate: -50% 0;
     }
 
     & > button,

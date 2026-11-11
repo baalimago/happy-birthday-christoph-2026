@@ -44,7 +44,7 @@
       }
 
       @media (width < 48rem) {
-        inset-block-start: 13.5rem;
+        inset-block-start: 10.5rem;
         inset-inline: 0.5rem;
         inline-size: auto;
       }

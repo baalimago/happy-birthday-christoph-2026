@@ -7,6 +7,13 @@ import AxeBuilder from '@axe-core/playwright';
  * @param {import('@playwright/test').Page} page
  */
 async function openSea(page) {
+  // A captain who has sailed before: a new voyage would open the splash, which hides the HUD and chart.
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      'philosophers-voyage:v2',
+      JSON.stringify({ found: [], view: 'poster', sailed: true }),
+    ),
+  );
   await page.route('**/voyage-sea/voyage-sea.js', (route) => route.abort());
   await page.goto('/');
   await page.evaluate(async () => {
@@ -35,7 +42,7 @@ test('is out of sight ashore, and M does nothing there', async ({ page }) => {
 
 test('the button unrolls the chart and tells the store; closing tells it too', async ({ page }) => {
   await openSea(page);
-  const button = page.getByRole('button', { name: 'Chart', exact: true });
+  const button = page.getByRole('button', { name: 'Map', exact: true });
   await expect(button).toBeVisible();
   await expect(button).toHaveAttribute('aria-keyshortcuts', 'M');
   await expect(button).toHaveAttribute('aria-expanded', 'false');

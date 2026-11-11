@@ -244,3 +244,21 @@ export function createRenderer(canvas, terrain)   // uploads the height grid onc
 
 Helm buttons: `button[data-helm="left|right|out|in|engine"]`. The map button is `button[data-chart-toggle]`
 inside `<voyage-chart>`.
+
+## Added after version 2
+
+- **One paper style.** Lorentz chose the chart cartouche look for everything that is not the sea: the HUD, cards,
+  panels and buttons are parchment and ink (IM Fell English) in every view. `css/tokens.css` therefore sets the
+  theme tokens once on `:root`; a view only changes `--sea` and the shader.
+- **Splash.** `[data-card="splash"]` in `<voyage-log>` opens first on a new voyage ("Happy Birthday from team
+  Wasmer!"); `button[data-next="intro"]` or Escape leads to the intro. While it is open the HUD, helm, map button
+  and aids are hidden (`css/utilities.css`).
+- **Reading panel.** `<voyage-reading>` (`js/components/voyage-reading/`) offers a text for the leg towards the
+  first port not yet found, from `js/game/readings.js` (`READINGS`, one per port plus a spare). `R` or
+  `button[data-reading-toggle]` opens it; the boat keeps sailing. May import stores and `game/readings.js`.
+- **Soundscape.** `js/audio/` (see `docs/SOUNDSCAPE.md`), started from `main.js`, driven only by the stores and
+  by `data-done` appearing on `[data-goal]` items. `button[data-sound]` or `Q` mutes it. May import stores.
+- **Aids.** `.aids` (in `css/layout.css`) holds the sound button and `<voyage-reading>`: beside the map button on
+  wide screens, between the thumbs on small ones.
+- **Hove to.** `<voyage-sea>` stops the boat and the wind clock while a card or the chart is open; the
+  instruments keep reading.
