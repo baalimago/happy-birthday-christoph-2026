@@ -433,7 +433,124 @@ export function play(ctx, out, white, cue, t) {
     case 'edge': // a far foghorn: here be nothing
       horn(ctx, out, t);
       break;
+    case 'anchor': // weighing anchor: the chain rattles up through the hawse
+      for (let i = 0; i < 14; i++) {
+        const s = t + i * (0.07 + Math.random() * 0.03);
+        bell(ctx, out, s, 2200 + Math.random() * 900, 0.05, 0.06, -0.3);
+        burst(ctx, out, white, s, 0.12, 3500, 0.03);
+      }
+      thud(ctx, out, white, t + 1.3, 0.6);
+      break;
+    case 'engineOn': // starter whirr, a cough or two, then it catches (the bed fades in)
+      starter(ctx, out, white, t);
+      break;
+    case 'engineOff': // falls silent with a last sputter
+      for (let i = 0; i < 3; i++) burst(ctx, out, white, t + i * 0.16, 0.18 - i * 0.05, 220, 0.09);
+      break;
+    case 'fill': // the sail fills: a soft whump of canvas and a creak as the sheet takes the load
+      burst(ctx, out, white, t, 0.5, 260, 0.22);
+      burst(ctx, out, white, t + 0.02, 0.18, 900, 0.12);
+      creak(ctx, out, t + 0.15, 0.08, 140);
+      break;
+    case 'tack': // through the wind: the sail shivers, then fills on the other side
+      flog(ctx, out, white, t, 1.1);
+      burst(ctx, out, white, t + 1.15, 0.45, 260, 0.25);
+      break;
+    case 'gybe': // the boom slams across
+      flog(ctx, out, white, t, 0.35);
+      thud(ctx, out, white, t + 0.35, 0.7);
+      burst(ctx, out, white, t + 0.36, 0.5, 700, 0.18);
+      break;
+    case 'winch': // a few ratchet clicks
+      for (let i = 0; i < 3; i++) {
+        const s = t + i * 0.055;
+        bell(ctx, out, s, 3100 + Math.random() * 300, 0.06, 0.03, 0.25);
+        burst(ctx, out, white, s, 0.1, 4200, 0.015);
+      }
+      break;
+    case 'goal':
+      peal(ctx, out, t, false);
+      break;
+    case 'finale':
+      peal(ctx, out, t, true);
+      break;
   }
+}
+
+// D major, a ringing clock tower. Notes in Hz.
+const D5 = 587.33;
+const E5 = 659.25;
+const FS5 = 739.99;
+const A5 = 880;
+const B5 = 987.77;
+const D6 = 1174.66;
+
+/**
+ * A clock tower ringing out: a rising run of bells, then the chord rung together, then the big bell.
+ * The finale runs the peal twice and strikes the hour three times.
+ * @param {AudioContext | OfflineAudioContext} ctx @param {AudioNode} out
+ * @param {number} t @param {boolean} grand
+ */
+function peal(ctx, out, t, grand) {
+  const run = [D5, FS5, A5, D6, A5, D6];
+  const step = 0.17;
+  const rounds = grand ? 2 : 1;
+  let s = t;
+  for (let r = 0; r < rounds; r++) {
+    run.forEach((hz, i) => bell(ctx, out, s + i * step, hz, 0.14, 2.2, (i % 3) * 0.35 - 0.35));
+    s += run.length * step + 0.12;
+    if (grand && r === 0) {
+      [E5, FS5, A5, B5, D6].forEach((hz, i) => bell(ctx, out, s + i * step, hz, 0.12, 2, 0.3));
+      s += 5 * step + 0.12;
+    }
+  }
+  [D5, FS5, A5, D6].forEach((hz) => bell(ctx, out, s, hz, 0.12, 3.5));
+  const strikes = grand ? 3 : 1;
+  for (let i = 0; i < strikes; i++) bell(ctx, out, s + 0.5 + i * 1.1, D5 / 4, 0.4, 5);
+}
+
+/**
+ * Canvas flogging hard for a moment, as when the bow passes through the wind.
+ * @param {AudioContext | OfflineAudioContext} ctx @param {AudioNode} out @param {AudioBuffer} white
+ * @param {number} t @param {number} dur
+ */
+function flog(ctx, out, white, t, dur) {
+  const n = Math.max(2, Math.round(dur / 0.11));
+  for (let i = 0; i < n; i++) {
+    const k = 1 - Math.abs(i / n - 0.5) * 1.4; // loudest in the middle
+    burst(ctx, out, white, t + i * (dur / n), 0.32 * k, 500 + Math.random() * 900, 0.08);
+  }
+}
+
+/**
+ * @param {AudioContext | OfflineAudioContext} ctx @param {AudioNode} out @param {AudioBuffer} white
+ * @param {number} t
+ */
+function starter(ctx, out, white, t) {
+  const osc = ctx.createOscillator();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(18, t);
+  osc.frequency.linearRampToValueAtTime(34, t + 0.7);
+  const wobble = ctx.createOscillator();
+  wobble.frequency.value = 9;
+  const wobbleAmount = ctx.createGain();
+  wobbleAmount.gain.value = 6;
+  wobble.connect(wobbleAmount).connect(osc.frequency);
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 900;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.22, t + 0.05);
+  g.gain.setValueAtTime(0.22, t + 0.6);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.8);
+  osc.connect(lp).connect(g).connect(out);
+  osc.start(t);
+  wobble.start(t);
+  osc.stop(t + 0.85);
+  wobble.stop(t + 0.85);
+  burst(ctx, out, white, t + 0.55, 0.35, 180, 0.12);
+  burst(ctx, out, white, t + 0.72, 0.4, 160, 0.14);
 }
 
 /** @param {AudioContext | OfflineAudioContext} ctx @param {AudioNode} out @param {number} t */
