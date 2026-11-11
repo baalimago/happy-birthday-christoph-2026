@@ -153,6 +153,13 @@ test('turns the compass card under the lubber line and reads the heading out', a
   await report(page, { heading: Math.PI });
   await expect(hud.locator('[data-heading]')).toHaveText('180');
   await expect(hud.locator('[data-point]')).toHaveText('S');
+
+  // The camera looks east while she heads south: the dial follows the camera, and the hull
+  // mark shows her heading, a quarter turn to the right of it.
+  await report(page, { heading: Math.PI, view: Math.PI / 2 });
+  await expect(hud.locator('[data-heading]')).toHaveText('090');
+  await expect(hud.locator('[data-point]')).toHaveText('E');
+  expect(await rotation(hud.locator('[data-ship]'))).toBeCloseTo(90, 1);
 });
 
 test('shows the wind, the boom to leeward and the mark to trim to', async ({ page }) => {

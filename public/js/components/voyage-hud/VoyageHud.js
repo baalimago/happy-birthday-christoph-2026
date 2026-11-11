@@ -121,6 +121,9 @@ export class VoyageHud extends HTMLElement {
   /** The side the boom lies on: 1 to port (wind over the starboard side), -1 to starboard. */
   #lee = 1;
 
+  /** The turn of the ship's mark on the compass, degrees. */
+  #ship = 0;
+
   connectedCallback() {
     this.#connected = new AbortController();
     const { signal } = this.#connected;
@@ -330,10 +333,16 @@ export class VoyageHud extends HTMLElement {
     const hull = Math.round(Math.min(1, Math.max(0, voyage.state.hull ?? 1)) * 100);
     const low = hull < HULL_LOW * 100;
 
-    // Compass: the card turns under a fixed lubber line.
-    const bearing = degrees(heading);
-    const [short, long] = point(heading);
-    this.#card = nearest(this.#card, (-heading * 180) / Math.PI);
+    // Compass: the card turns under a fixed lubber line, which is the way the camera looks, so
+    // that the top of the dial is the top of the screen. A small hull on the rim shows the way
+    // she heads.
+    const view = passage.state.log.view ?? heading;
+    const bearing = degrees(view);
+    const [short] = point(view);
+    const [, long] = point(heading);
+    this.#card = nearest(this.#card, (-view * 180) / Math.PI);
+    this.#ship = nearest(this.#ship, ((heading - view) * 180) / Math.PI);
+    this.#set('[data-ship]', 'rotate', `${this.#ship.toFixed(1)}deg`);
     this.#set('[data-card]', 'rotate', `${this.#card.toFixed(1)}deg`);
     this.#say('[data-heading]', String(bearing).padStart(3, '0'));
     this.#say('[data-point]', short);

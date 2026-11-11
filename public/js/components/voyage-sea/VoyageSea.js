@@ -529,6 +529,8 @@ export class VoyageSea extends HTMLElement {
       this.#sinceLog = 0;
       passage.report({
         heading: compass(boat.heading),
+        // The camera at yaw PI lies astern and looks along her heading.
+        view: compass(boat.heading + this.#yaw + Math.PI),
         speed: boat.speed,
         windFrom: compass(wind.from),
         windSpeed: wind.speed,

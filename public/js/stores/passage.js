@@ -5,6 +5,8 @@ import { Store } from '#lib/store.js';
  *
  * @typedef {object} Log
  * @property {number} heading radians, 0 north, positive clockwise (east is PI / 2)
+ * @property {number} [view] the compass bearing the camera looks along, radians; her heading
+ *   if not given
  * @property {number} speed world units a second; 1 unit a second reads as 1 knot
  * @property {number} windFrom compass bearing the wind blows from, radians
  * @property {number} windSpeed 0.35 in a lull .. 1 fresh breeze .. 1.6 in a squall

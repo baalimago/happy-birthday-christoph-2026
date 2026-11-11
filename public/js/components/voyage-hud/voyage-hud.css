@@ -242,6 +242,13 @@
       stroke-linejoin: round;
     }
 
+    /* The way she heads, on a dial that shows the way the camera looks. */
+    & .ship {
+      fill: var(--hud-fg);
+      stroke: var(--hud-bg);
+      stroke-width: 1;
+    }
+
     & .lubber {
       stroke: var(--hud-bg);
       stroke-width: 1.5;
@@ -594,6 +601,7 @@
   @media (prefers-reduced-motion: no-preference) {
     voyage-hud {
       & [data-card],
+      & [data-ship],
       & [data-wind-arrow],
       & [data-boom],
       & [data-best] {
