@@ -19,6 +19,17 @@
       outline: none;
     }
 
+    /* A holed boat goes down: the picture darkens over the three seconds it takes. */
+    &[sinking]::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      background: #06131f;
+      pointer-events: none;
+      animation: voyage-sea-sink 3.2s ease-in forwards;
+    }
+
     /* Shown from the moment the element wakes until the first frame is on the canvas: a backdrop
        over the whole page (the logbook underneath is not for looking at while the sea loads) with
        the greeting and the loading bar on a card. */
@@ -92,6 +103,16 @@
       & .bar::before {
         transition: none;
       }
+    }
+  }
+
+  @keyframes voyage-sea-sink {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 0.9;
     }
   }
 }

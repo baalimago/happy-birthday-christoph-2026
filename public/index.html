@@ -127,8 +127,8 @@
       <h1>The Philosopher's Voyage</h1>
       <p class="lede">Happy birthday, Christoph. This is a sailing game, and the boat is yours.</p>
       <ol class="how">
-        <li><strong>Where you are:</strong> at anchor in the home harbour, on the south coast, bow pointing north to the open sea. The red anchor on the map (<kbd>M</kbd>) is this spot.</li>
-        <li><strong>The goal:</strong> seven places are hidden across the sea, six lighthouses and a sea cave. Sail up close to one and it is found. The Captain's orders, top left, say what to look for next; the first one is the lighthouse on the headland right beside the harbour, to the east: turn right (<kbd>→</kbd>) as you leave and it is a minute away. Every place is a red cross on the map.</li>
+        <li><strong>Where you are:</strong> at anchor in the home harbour, on the south coast, bow pointing at the first lighthouse, on the headland just east of you. The red anchor on the map (<kbd>M</kbd>) is this spot.</li>
+        <li><strong>The goal:</strong> seven places are hidden across the sea, six lighthouses and a sea cave. Sail up close to one and it is found. The Captain's orders, top left, say what to look for next; the first is that lighthouse dead ahead, and the orders talk you through sailing to it. Every place is a red cross on the map.</li>
         <li><strong>Steer</strong> with <kbd>←</kbd> and <kbd>→</kbd>. The compass is top right.</li>
         <li><strong>Sails:</strong> <kbd>↑</kbd> lets them out, <kbd>↓</kbd> hauls them in. Trim until the boom meets the marker on the wind dial; the instruments tell you which way. You cannot sail straight into the wind.</li>
         <li><strong>Easier:</strong> <kbd>E</kbd> starts the engine, and it works in any wind.</li>
@@ -217,6 +217,13 @@
         <button type="button" data-close>Sail on</button>
       </article></li>
     </ol>
+    <section class="card wreck" data-card="wreck">
+      <p class="eyebrow">Shipwreck</p>
+      <h2>She went down</h2>
+      <p class="lede">The hull was holed and the boat sank. The harbour tug fished you out and towed you back to the last place you found, or to the home harbour if you had found none. The hull is mended.</p>
+      <p>Keep an eye on the Hull gauge: rocks and shallows cost you, and calling at any place you have found repairs it.</p>
+      <button type="button" data-close>Back to the helm</button>
+    </section>
     <section class="card finale" data-card="finale">
       <p class="eyebrow">Every port found</p>
       <h2 lang="de">Alles Gute zum Geburtstag, Christoph!</h2>
@@ -243,6 +250,7 @@
         <button type="button" data-view="gold" hidden>Gold</button>
         <button type="button" data-view="chart" hidden>Chart</button>
       </div>
+      <p class="coach" data-coach hidden></p>
       <p role="status" data-notice></p>
     </div>
     <div class="instruments" role="group" aria-label="Instruments">

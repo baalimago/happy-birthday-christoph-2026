@@ -30,6 +30,8 @@ const LOG_EVERY = 0.1;
 const MOOR_EVERY = 4;
 /** Seconds a wreck or a repair stays on the notice line before lesser news may replace it. */
 const HOLD = 5;
+/** Seconds a holed boat takes to go down before she is towed off. */
+const SINK = 3.2;
 /** A lighthouse counts as found from this far off. */
 const ARRIVE = 30;
 /** While the kraken hunts, the camera stands off on the bow, wide, to show the boat and it. */
@@ -93,7 +95,7 @@ function marksOf(terrain) {
  *
  * The boat heaves to (the clock stops) while a card or the chart is open.
  *
- * Reflects `loading` (`chart`, then `rig`) until the first frame is drawn, `live` while the sea is drawn, `data-view` for the current view, and `looking`
+ * Reflects `sinking` while a holed boat goes down, `loading` (`chart`, then `rig`) until the first frame is drawn, `live` while the sea is drawn, `data-view` for the current view, and `looking`
  * while the camera is being dragged.
  */
 export class VoyageSea extends HTMLElement {
@@ -119,6 +121,8 @@ export class VoyageSea extends HTMLElement {
   #sinceLog = 0;
   #sinceMoor = 0;
   #charting = false;
+  /** Seconds left of going down, after the hull gives out. */
+  #sinking = 0;
   #hold = 0;
   #yaw = REST_YAW;
   #pitch = REST_PITCH;
@@ -247,7 +251,14 @@ export class VoyageSea extends HTMLElement {
   #mooring() {
     const berth = voyage.state.berth;
     const terrain = this.#terrain;
-    return berth && terrain && isWater(terrain, berth.x, berth.z) ? berth : START;
+    return berth && terrain && isWater(terrain, berth.x, berth.z) ? berth : this.#harbour();
+  }
+
+  /** Where a voyage begins: at anchor in the harbour, bow towards the first light to find. */
+  #harbour() {
+    const first = this.#marks[0];
+    const heading = first ? Math.atan2(first.x - START.x, first.z - START.z) : START.heading;
+    return { x: START.x, z: START.z, heading };
   }
 
   #moor() {
@@ -264,7 +275,7 @@ export class VoyageSea extends HTMLElement {
     this.#reflectView();
     // A new voyage starts back in the harbour.
     const { sailed, found, berth } = voyage.state;
-    if (!sailed && found.length === 0 && !berth) this.#boat = newBoat(START);
+    if (!sailed && found.length === 0 && !berth) this.#boat = newBoat(this.#harbour());
   }
 
   /**
@@ -334,17 +345,30 @@ export class VoyageSea extends HTMLElement {
     this.#last = now;
     if (!this.#still) this.#time += dt;
 
-    const hoveTo = passage.state.reading || passage.state.chart;
+    // Every card is read at rest, like the book and the map: the greeting and the sailing orders
+    // too, or the wind would carry her off (and close them) before they are read.
+    const ashore = this.querySelector('voyage-log [data-card][data-open]') !== null;
+    const hoveTo = passage.state.reading || passage.state.chart || ashore;
     // The chart shows where she lies: tell the log as the map is unrolled.
     if (passage.state.chart && !this.#charting) this.#moor();
     this.#charting = passage.state.chart;
     const wind = windAt(this.#watch, this.#boat.x, this.#boat.z);
     // Hove to, the clock stops but the instruments still read.
-    const step = hoveTo ? 0 : dt;
+    const step = hoveTo || this.#sinking > 0 ? 0 : dt;
     this.#watch += step;
     this.#sail(step, wind, terrain, dt);
     this.#live(step, terrain);
     const boat = this.#boat;
+    if (this.#sinking > 0) {
+      // Going down: she stops and lies over, the picture darkens (voyage-sea.css), then the tow.
+      this.#sinking -= dt;
+      boat.speed = 0;
+      boat.lean = Math.min(1.35, Math.abs(boat.lean) + dt * 0.5) * (boat.lean < 0 ? -1 : 1);
+      if (this.#sinking <= 0) {
+        this.removeAttribute('sinking');
+        this.#wreck();
+      }
+    }
 
     // Let the camera drift back to rest once the captain lets go of it, and close up in the cave.
     const under = insideCave(terrain.cave, boat.x, boat.z) > -3;
@@ -429,7 +453,7 @@ export class VoyageSea extends HTMLElement {
       // A rocket-speed strike is a joke, not a death sentence: it costs what a hard grounding costs.
       voyage.damage(damageFor(Math.min(outcome.impact, 6)));
       if (voyage.state.hull <= 0) {
-        this.#wreck();
+        this.#founder();
         return;
       }
     }
@@ -478,14 +502,24 @@ export class VoyageSea extends HTMLElement {
     this.#menace = this.#fauna.menace(this.#boat);
     if (strike > 0) {
       voyage.damage(strike);
-      if (voyage.state.hull <= 0) this.#wreck();
+      if (voyage.state.hull <= 0) this.#founder();
     }
   }
 
-  /** Holed and sinking: towed back to the last port found (or the harbour) and patched up. */
+  /** The hull has given out: she goes down where she is, and the tow comes after. */
+  #founder() {
+    if (this.#sinking > 0) return;
+    this.#sinking = SINK;
+    this.#hold = SINK + HOLD;
+    this.toggleAttribute('sinking', true);
+    passage.arriveAt(null);
+    passage.note('sinking');
+  }
+
+  /** Sunk: towed back to the last port found (or the harbour) and patched up. */
   #wreck() {
     const last = voyage.state.found.at(-1);
-    const berth = this.#marks.find((mark) => mark.id === last)?.berth ?? START;
+    const berth = this.#marks.find((mark) => mark.id === last)?.berth ?? this.#harbour();
     this.#boat = newBoat(berth);
     passage.arriveAt(null);
     passage.note('wrecked');
@@ -511,6 +545,10 @@ export class VoyageSea extends HTMLElement {
       this.#hold = HOLD;
     }
     passage.arriveAt(at);
-    if (at) voyage.discover(at);
+    if (at) {
+      // She rounds up and stops at a place found, rather than running on into its rocks.
+      if (!voyage.state.found.includes(at)) boat.speed = 0;
+      voyage.discover(at);
+    }
   }
 }

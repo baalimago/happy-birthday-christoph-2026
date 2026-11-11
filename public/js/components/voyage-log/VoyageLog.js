@@ -117,10 +117,14 @@ export class VoyageLog extends HTMLElement {
     const struck = wrecked && !this.#wrecked;
     this.#wrecked = wrecked;
     if (!this.#atSea) return;
-    // A wreck is no time to read: whatever card is open goes away, and the notice has the floor.
-    if (struck) this.#close();
+    // Going down is no time to read: whatever card is open goes away.
+    if (notice === 'sinking' && this.#openCard()) this.#close();
+    // Towed in after a wreck: a card says what happened, and it keeps the floor over the card of
+    // the port she was towed to.
+    if (struck) this.#open('wreck');
     if (near === this.#near) return;
     this.#near = near;
+    if (this.#openCard()?.dataset.card === 'wreck') return;
     if (near) this.#open(near);
     else if (this.#openCard()?.hasAttribute('data-port')) this.#close();
   }

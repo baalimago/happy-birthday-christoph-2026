@@ -308,7 +308,9 @@ test('announces grounding, the edge, a wreck, repairs and arrival, then falls si
   await note('edge');
   await expect(status).toHaveText('Here be dragons. The wind turns you back.');
   await note('wrecked');
-  await expect(status).toHaveText('Holed and sinking. Towed back to the last port for repairs.');
+  await expect(status).toHaveText(
+    'Sunk. Towed back to the last place found, and the hull is mended.',
+  );
   await note('repaired');
   await expect(status).toHaveText('Hull repaired in port.');
 

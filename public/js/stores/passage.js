@@ -1,7 +1,7 @@
 import { Store } from '#lib/store.js';
 
 /**
- * @typedef {'' | 'aground' | 'edge' | 'wrecked' | 'repaired' | 'luffing'} Notice
+ * @typedef {'' | 'aground' | 'edge' | 'sinking' | 'wrecked' | 'repaired' | 'luffing'} Notice
  *
  * @typedef {object} Log
  * @property {number} heading radians, 0 north, positive clockwise (east is PI / 2)

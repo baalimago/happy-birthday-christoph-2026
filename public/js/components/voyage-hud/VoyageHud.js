@@ -43,7 +43,8 @@ const NOTICES = {
   luffing: '',
   aground: 'Aground! The hull takes damage. Back off and steer round.',
   edge: 'Here be dragons. The wind turns you back.',
-  wrecked: 'Holed and sinking. Towed back to the last port for repairs.',
+  sinking: 'Holed! She is going down.',
+  wrecked: 'Sunk. Towed back to the last place found, and the hull is mended.',
   repaired: 'Hull repaired in port.',
 };
 
@@ -332,6 +333,28 @@ export class VoyageHud extends HTMLElement {
         sheet < best
           ? 'Sails too tight: let them out (up arrow)'
           : 'Sails too loose: haul them in (down arrow)';
+    }
+    // Until the first light is found, the coach talks the captain through the first leg.
+    const coach = this.querySelector('[data-coach]');
+    if (coach instanceof HTMLElement) {
+      const first = this.querySelector('li[data-goal^="port:"]')?.getAttribute('data-goal') ?? '';
+      const done = voyage.state.found.includes(first.slice(5));
+      let lesson = '';
+      if (!done && engine) {
+        lesson = 'Engine on. Steer (← →) for the lighthouse ahead.';
+      } else if (!done && irons) {
+        lesson =
+          'Bow into the wind: she will not sail. Turn away (← or →), or press E for the engine.';
+      } else if (!done && trim <= 0.8) {
+        lesson =
+          sheet < best
+            ? 'First lesson: the lighthouse is ahead and the wind is behind you. Hold ↑ to let the sails out until the boom meets the marker on the wind dial.'
+            : 'Too far out now. Hold ↓ to haul the sails in until the boom meets the marker on the wind dial.';
+      } else if (!done) {
+        lesson = 'Sails drawing well. Steer (← →) for the lighthouse ahead: sail right up to it.';
+      }
+      if (lesson && coach.textContent !== lesson) coach.textContent = lesson;
+      if (coach.hidden === (lesson !== '')) coach.hidden = lesson === '';
     }
     const warning = this.querySelector('[data-irons-note]');
     if (warning instanceof HTMLElement) {

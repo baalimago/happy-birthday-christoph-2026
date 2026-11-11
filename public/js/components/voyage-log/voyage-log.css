@@ -303,4 +303,9 @@
       display: none;
     }
   }
+
+  /* The shipwreck card belongs to the game: the logbook ashore has no use for it. */
+  voyage-sea:not([live]) voyage-log .card.wreck {
+    display: none;
+  }
 }

@@ -241,16 +241,22 @@ test('the finale does not show with six of the seven found', async ({ page }) =>
   await expect(openCards(page)).toHaveAttribute('data-card', 'finale');
 });
 
-test('a wreck closes the open card, once', async ({ page }) => {
+test('going down closes the open card, and the tow opens the shipwreck card, once', async ({
+  page,
+}) => {
   await board(page, { sailed: true });
   await arriveAt(page, 'edge');
   await expect(openCards(page)).toHaveAttribute('data-card', 'edge');
-  await page.evaluate(async () => (await import('/js/stores/passage.js')).passage.note('wrecked'));
+  await page.evaluate(async () => (await import('/js/stores/passage.js')).passage.note('sinking'));
   await expect(openCards(page)).toHaveCount(0);
   expect(await reading(page)).toBe(false);
+  await page.evaluate(async () => (await import('/js/stores/passage.js')).passage.note('wrecked'));
+  await expect(openCards(page)).toHaveAttribute('data-card', 'wreck');
 
-  // Still wrecked, towed to a port: its card may open.
+  // Towed to a port: the shipwreck card keeps the floor until it is closed.
   await arriveAt(page, null);
   await arriveAt(page, 'juniper');
-  await expect(openCards(page)).toHaveAttribute('data-card', 'juniper');
+  await expect(openCards(page)).toHaveAttribute('data-card', 'wreck');
+  await page.keyboard.press('Escape');
+  await expect(openCards(page)).toHaveCount(0);
 });

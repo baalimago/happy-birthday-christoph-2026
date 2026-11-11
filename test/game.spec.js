@@ -256,7 +256,9 @@ test('without WebGL 2 the page stays a logbook with every card readable', async 
   await page.waitForFunction(() => document.querySelector('voyage-sea')?.matches(':defined'));
   await expect(page.locator('voyage-sea')).not.toHaveAttribute('live');
   await expect(page.locator('voyage-log [data-port]')).toHaveCount(7);
-  for (const card of await page.locator('voyage-log [data-card]').all()) {
+  // (All but the shipwreck card, which only the game has a use for.)
+  for (const card of await page.locator('voyage-log [data-card]:not([data-card="wreck"])').all()) {
     await expect(card).toBeVisible();
   }
+  await expect(page.locator('voyage-log [data-card="wreck"]')).toBeHidden();
 });
