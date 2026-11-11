@@ -13,12 +13,30 @@
 import { passage as passageStore } from '#stores/passage.js';
 import { voyage as voyageStore } from '#stores/voyage.js';
 import { cues, mix } from './mix.js';
-import { beds, brownNoise, creak, gull, play, whiteNoise } from './voices.js';
+import { createMusic, reverb } from './music.js';
+import { beds, brownNoise, creak, drip, gull, play, whiteNoise } from './voices.js';
+import { slap, spray, surf, wave } from './waves.js';
+import { createWeather } from './weather.js';
+import { creature, dread } from './wildlife.js';
 
 const KEY = 'philosophers-voyage:sound';
+const MUSIC_KEY = 'philosophers-voyage:music';
 
 /** How loud each bed is at level 1, before the master. */
-const BED_GAIN = { sea: 0.6, wash: 0.25, wind: 0.22, whistle: 0.05, luff: 0.22, engine: 0.28 };
+const BED_GAIN = {
+  sea: 0.25,
+  wash: 0.25,
+  wind: 0.24,
+  whistle: 0.06,
+  luff: 0.22,
+  engine: 0.28,
+  rocket: 0.3,
+  kraken: 0.22,
+};
+/** How loud the single waves, slaps, spray and surf are. */
+const WAVE_GAIN = 1;
+/** The music, under everything else. */
+const MUSIC_GAIN = 0.5;
 const MASTER = 1;
 /** Seconds a level takes to settle (time constant): smooth, never zippered. */
 const GLIDE = 0.35;
@@ -29,6 +47,8 @@ const GLIDE = 0.35;
  *   readonly muted: boolean,
  *   setMuted(muted: boolean): void,
  *   toggle(): void,
+ *   readonly music: boolean,
+ *   setMusic(on: boolean): void,
  *   tick(): void,
  *   readonly context: BaseAudioContext | null,
  * }} Soundscape
@@ -50,6 +70,10 @@ export function startSoundscape(signal, opts = {}) {
   const offline = typeof OfflineAudioContext === 'function' && given instanceof OfflineAudioContext;
 
   let muted = readMuted();
+  let music = readMusic();
+  const weather = createWeather();
+  let weatherAt = -1;
+  let nextDrip = 0;
   /** @type {Graph | null} */
   let graph = null;
   let heard = false; // a gesture has happened (or a context was handed in)
@@ -78,6 +102,7 @@ export function startSoundscape(signal, opts = {}) {
       const ctx = given ?? makeContext();
       if (!ctx) return null;
       graph = build(ctx);
+      graph.musicBus.gain.value = music ? MUSIC_GAIN : 0;
       const t = ctx.currentTime;
       graph.master.gain.setValueAtTime(0, t);
       graph.master.gain.linearRampToValueAtTime(muted ? 0 : MASTER, t + 2.5); // fade in from silence
@@ -111,12 +136,15 @@ export function startSoundscape(signal, opts = {}) {
     /** @param {AudioParam} param @param {number} value */
     const set = (param, value) =>
       now ? param.setValueAtTime(value, t) : param.setTargetAtTime(value, t, GLIDE);
-    for (const name of /** @type {(keyof typeof BED_GAIN)[]} */ (Object.keys(BED_GAIN))) {
+    for (const name of /** @type {(keyof ReturnType<typeof beds>)[]} */ (Object.keys(bed))) {
       set(bed[name].level.gain, levels[name] * BED_GAIN[name]);
     }
     set(/** @type {AudioParam} */ (bed.sea.tone), levels.seaTone);
     set(/** @type {AudioParam} */ (bed.wash.tone), levels.washTone);
     set(/** @type {AudioParam} */ (bed.wind.tone), levels.windTone);
+    set(/** @type {AudioParam} */ (bed.rocket.tone), levels.rocketTone);
+    set(graph.cave.gain, 0.04 + 0.6 * levels.cave);
+    set(graph.dread.level.gain, levels.kraken * BED_GAIN.kraken);
     const [w1, w2] = bed.whistle.pitch ?? [];
     if (w1 && w2) {
       set(w1, 1180 * (0.85 + 0.3 * levels.whistle));
@@ -136,11 +164,23 @@ export function startSoundscape(signal, opts = {}) {
   function update() {
     const next = take();
     const fired = cues(snapshot, next);
+    const seen = next.passage.sighting;
+    const sighted = seen && seen.at !== snapshot.passage.sighting?.at ? seen.kind : '';
     snapshot = next;
     if (!graph) return;
     apply(mix(next.passage, next.voyage));
     if (muted) return;
     const t = graph.ctx.currentTime + 0.03;
+    if (sighted) {
+      creature(
+        graph.ctx,
+        graph.water,
+        graph.room,
+        { white: graph.white, brown: graph.brown },
+        sighted,
+        t,
+      );
+    }
     for (const cue of fired) {
       if (cue === 'arrive' && t - foundAt < 3) continue; // the new-port bells already rang
       if (cue === 'winch') {
@@ -186,12 +226,66 @@ export function startSoundscape(signal, opts = {}) {
   });
   watcher.observe(root, { subtree: true, attributes: true, attributeFilter: ['data-done'] });
 
-  /** Scatter the occasional gull and creak. Called 4 times a second (or by a preview). */
+  /**
+   * The living part, called 4 times a second (or by a preview): gusts and swell move the beds,
+   * waves and other water noises are scattered, the music writes its next bars, gulls and creaks.
+   */
   function tick() {
     if (!graph || muted) return;
     const { ctx, levels } = graph;
     if (!levels) return;
     const t = ctx.currentTime;
+    const dt = weatherAt < 0 ? 0.25 : t - weatherAt;
+    weatherAt = t;
+    const hove = levels.duck < 1; // a card or the chart: the wind clock stops, but the sea goes on
+    const w = weather.step(hove ? dt * 0.3 : dt, {
+      wind: levels.breeze,
+      gust: levels.gust,
+      sea: levels.seaState,
+      speed: hove ? 0 : levels.speed,
+      land: levels.land,
+    });
+    const { bed } = graph;
+    const glide = 0.6;
+    // Each layer of wind takes the gust a little differently, so they never move as one.
+    (bed.wind.gust ?? []).forEach((p, i) =>
+      p.setTargetAtTime(
+        0.35 + 1.1 * w.gust * (i ? 1.15 : 0.85) + 0.1 * Math.random(),
+        t,
+        glide + i * 0.4,
+      ),
+    );
+    (bed.wind.swing ?? []).forEach((p, i) =>
+      p.setTargetAtTime(
+        i % 2 ? Math.random() * 1.2 - 0.6 : (w.gust - 0.4) * 900 + (Math.random() - 0.5) * 150,
+        t,
+        i % 2 ? 3 : glide,
+      ),
+    );
+    (bed.whistle.gust ?? []).forEach((p) =>
+      p.setTargetAtTime(Math.max(0, w.gust - 0.35) ** 2 * 2.5 * Math.random(), t, 0.8),
+    );
+    (bed.sea.gust ?? []).forEach((p) =>
+      p.setTargetAtTime(
+        (0.25 + 0.5 * w.sea) * (0.6 + 0.6 * w.swell) * (0.7 + 0.6 * Math.random()),
+        t,
+        2.5,
+      ),
+    );
+    const water = graph.water;
+    const buf = { white: graph.white, brown: graph.brown };
+    for (const e of w.events) {
+      const at = t + 0.05 + e.at;
+      if (e.kind === 'wave') wave(ctx, water, buf, at, e.size * (1 - 0.6 * levels.cave), e.pan);
+      else if (e.kind === 'slap') slap(ctx, water, buf, at, e.size, e.pan);
+      else if (e.kind === 'spray') spray(ctx, water, buf, at, e.size, e.pan);
+      else surf(ctx, water, buf, at, e.size, e.pan);
+    }
+    if (music) graph.music.tick(t, { energy: levels.energy, dark: levels.dark });
+    if (levels.cave > 0 && t >= nextDrip) {
+      if (nextDrip > 0) drip(ctx, graph.bus, t + 0.05, 0.05 + 0.05 * Math.random());
+      nextDrip = t + 0.4 + Math.random() * 2.6;
+    }
     if (levels.gulls <= 0.05) {
       nextGull = 0;
     } else if (nextGull === 0) {
@@ -230,10 +324,25 @@ export function startSoundscape(signal, opts = {}) {
     }
   }
 
+  /** @param {boolean} on */
+  function setMusic(on) {
+    music = on;
+    writeMusic(music);
+    reflect();
+    if (!graph) return;
+    const t = graph.ctx.currentTime;
+    graph.musicBus.gain.cancelScheduledValues(t);
+    graph.musicBus.gain.setTargetAtTime(music ? MUSIC_GAIN : 0, t, music ? 1.5 : 0.4);
+  }
+
   function reflect() {
     for (const button of root.querySelectorAll('[data-sound]')) {
       button.removeAttribute('hidden');
       button.setAttribute('aria-pressed', String(!muted));
+    }
+    for (const button of root.querySelectorAll('[data-music]')) {
+      button.removeAttribute('hidden');
+      button.setAttribute('aria-pressed', String(music));
     }
   }
 
@@ -247,6 +356,7 @@ export function startSoundscape(signal, opts = {}) {
     (event) => {
       const target = /** @type {Element | null} */ (event.target);
       if (target?.closest?.('[data-sound]')) setMuted(!muted);
+      else if (target?.closest?.('[data-music]')) setMusic(!music);
     },
     on,
   );
@@ -295,6 +405,10 @@ export function startSoundscape(signal, opts = {}) {
     },
     setMuted,
     toggle: () => setMuted(!muted),
+    get music() {
+      return music;
+    },
+    setMusic,
     tick,
     get context() {
       return graph?.ctx ?? null;
@@ -305,7 +419,10 @@ export function startSoundscape(signal, opts = {}) {
 /**
  * @typedef {{
  *   ctx: AudioContext | OfflineAudioContext, master: GainNode, bus: GainNode, cues: GainNode,
- *   bed: ReturnType<typeof beds>, white: AudioBuffer, levels: import('./mix.js').Levels | null,
+ *   water: GainNode, musicBus: GainNode, cave: GainNode, music: ReturnType<typeof createMusic>,
+ *   room: ConvolverNode, dread: ReturnType<typeof dread>,
+ *   bed: ReturnType<typeof beds>, white: AudioBuffer, brown: AudioBuffer,
+ *   levels: import('./mix.js').Levels | null,
  * }} Graph
  */
 
@@ -317,14 +434,47 @@ function build(ctx) {
   comp.connect(ctx.destination);
   const master = ctx.createGain();
   master.connect(comp);
-  const bus = ctx.createGain(); // the beds and scattered events; ducked while a card or the chart is open
+  const room = reverb(ctx); // the music's hall, and the sea cave's echo
+  const roomOut = ctx.createGain();
+  roomOut.gain.value = 0.5;
+  room.connect(roomOut).connect(master);
+  const bus = ctx.createGain(); // beds and scattered sounds; ducked while a card or the chart is open
   bus.connect(master);
+  const cave = ctx.createGain(); // how much of the sea goes into the echo: a lot inside the cave
+  cave.gain.value = 0.04;
+  bus.connect(cave).connect(room);
+  const water = ctx.createGain();
+  water.gain.value = WAVE_GAIN;
+  water.connect(bus);
   const cueBus = ctx.createGain();
   cueBus.gain.value = 0.8;
   cueBus.connect(master);
+  const cueRoom = ctx.createGain();
+  cueRoom.gain.value = 0.25; // bells ring on a little
+  cueBus.connect(cueRoom).connect(room);
+  const musicBus = ctx.createGain(); // never ducked: the music carries on while he reads
+  musicBus.connect(master);
   const white = whiteNoise(ctx, 3);
-  const bed = beds(ctx, bus, { white, brown: brownNoise(ctx, 6) });
-  return { ctx, master, bus, cues: cueBus, bed, white, levels: null };
+  const brown = brownNoise(ctx, 6);
+  const bed = beds(ctx, bus, { white, brown });
+  const music = createMusic(ctx, musicBus, room);
+  const fear = dread(ctx, master, { white, brown }); // not ducked: the kraken does not wait
+  return {
+    room,
+    dread: fear,
+    ctx,
+    master,
+    bus,
+    cues: cueBus,
+    water,
+    musicBus,
+    cave,
+    music,
+    bed,
+    white,
+    brown,
+    levels: null,
+  };
 }
 
 function makeContext() {
@@ -350,5 +500,22 @@ function writeMuted(muted) {
     localStorage.setItem(KEY, muted ? 'off' : 'on');
   } catch {
     // Not remembered; the toggle still works for this visit.
+  }
+}
+
+function readMusic() {
+  try {
+    return localStorage.getItem(MUSIC_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+/** @param {boolean} on */
+function writeMusic(on) {
+  try {
+    localStorage.setItem(MUSIC_KEY, on ? 'on' : 'off');
+  } catch {
+    // Not remembered.
   }
 }
