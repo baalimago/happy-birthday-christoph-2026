@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-LMKQWptfothwMnQJtsmOV+L7QH9D7H8M8H4iMnkCpto='; style-src 'self'; object-src 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-bv+rVrXeqykz9Lrb+6lDR3gIJdHbwtIgP0n4cTblbZ0='; style-src 'self'; object-src 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
 <link rel="stylesheet" href="/css/main.css">
 <link rel="stylesheet" href="/css/reset.css">
 <link rel="stylesheet" href="/css/tokens.css">
@@ -23,7 +23,8 @@
     "#game/": "/js/game/",
     "#render/": "/js/render/",
     "#input/": "/js/input/",
-    "#gift/": "/js/gift/"
+    "#gift/": "/js/gift/",
+    "#audio/": "/js/audio/"
   }
 }
 </script>
@@ -199,6 +200,7 @@
       <button type="button" data-view="gold" hidden>Gold</button>
       <button type="button" data-view="chart" hidden>Chart</button>
     </div>
+    <button type="button" class="sound" data-sound aria-pressed="true" hidden>Sound</button>
     <p role="status" data-notice></p>
   </voyage-hud>
   <div class="helm" role="group" aria-label="Helm">

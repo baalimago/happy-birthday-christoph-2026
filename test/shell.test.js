@@ -107,6 +107,7 @@ const BOUNDARIES = {
   '/js/components/voyage-log/': ['/js/stores/'],
   '/js/gift/': [],
   '/js/lib/': [],
+  '/js/audio/': ['/js/stores/'],
 };
 // main.js wires the page together, so it may import anything.
 const FREE = ['/js/main.js'];

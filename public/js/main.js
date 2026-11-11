@@ -7,3 +7,8 @@ wrapBirthday();
 lazyDefine('voyage-sea', () => import('#components/voyage-sea/voyage-sea.js'));
 lazyDefine('voyage-hud', () => import('#components/voyage-hud/voyage-hud.js'));
 lazyDefine('voyage-log', () => import('#components/voyage-log/voyage-log.js'));
+
+// The sea, the wind and the gulls: synthesised, silent until the first tap or key press.
+import('#audio/soundscape.js').then(({ startSoundscape }) =>
+  startSoundscape(new AbortController().signal),
+);
