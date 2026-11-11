@@ -64,10 +64,11 @@ function point(radians) {
   return POINTS[Math.round(degrees(radians) / 22.5) % 16];
 }
 
-/** @param {number} speed 0 calm .. 1 fresh breeze */
+/** @param {number} speed 0.35 a lull .. 1 fresh breeze .. 1.6 a squall */
 function strength(speed) {
   if (speed < 0.7) return 'light';
-  return speed < 1 ? 'moderate' : 'fresh';
+  if (speed < 1) return 'moderate';
+  return speed < 1.3 ? 'fresh' : 'strong';
 }
 
 /** @param {number} trim 0 flapping .. 1 perfect */
@@ -309,7 +310,8 @@ export class VoyageHud extends HTMLElement {
     // Speed, and what drives the boat.
     const knots = Math.max(0, speed).toFixed(1);
     let power = 'under sail';
-    if (engine) power = 'under engine';
+    if (passage.state.log.rocket) power = 'Amin mode';
+    else if (engine) power = 'under engine';
     else if (speed < 0.05) power = 'stopped';
     this.#say('[data-speed]', knots);
     this.#say('[data-power]', power);

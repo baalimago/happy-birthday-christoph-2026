@@ -59,22 +59,33 @@ test('the wind never jumps, and stays within its range', () => {
   let low = Infinity;
   let high = -Infinity;
   let widest = 0;
+  let lightest = Infinity;
+  let gustiest = 0;
+  let calmest = Infinity;
+  let roughest = 0;
   for (let t = 0.5; t <= 7200; t += 0.5) {
     const wind = windAt(t);
     assert.ok(wind.from >= 0 && wind.from < Math.PI * 2, `bearing ${wind.from} at ${t}`);
-    assert.ok(wind.speed >= 0.55 && wind.speed <= 1.25, `speed ${wind.speed} at ${t}`);
+    assert.ok(wind.speed >= 0.35 && wind.speed <= 1.6, `speed ${wind.speed} at ${t}`);
     const veer = Math.abs(wrap(wind.from - last.from));
-    assert.ok(veer < 1 * DEG, `the wind swung ${veer / DEG} degrees in half a second at ${t}`);
-    assert.ok(Math.abs(wind.speed - last.speed) < 0.03, `the wind jumped in strength at ${t}`);
+    assert.ok(veer < 2 * DEG, `the wind swung ${veer / DEG} degrees in half a second at ${t}`);
+    assert.ok(Math.abs(wind.speed - last.speed) < 0.1, `the wind jumped in strength at ${t}`);
     const off = wrap(wind.from - 247.5 * DEG) / DEG;
     low = Math.min(low, off);
     high = Math.max(high, off);
     widest = Math.max(widest, wind.speed);
+    lightest = Math.min(lightest, wind.speed);
+    gustiest = Math.max(gustiest, wind.gust);
+    calmest = Math.min(calmest, wind.sea);
+    roughest = Math.max(roughest, wind.sea);
     last = wind;
   }
-  assert.ok(low > -42 && high < 42, `swings ${low.toFixed(1)} to ${high.toFixed(1)}`);
+  assert.ok(low > -52 && high < 52, `swings ${low.toFixed(1)} to ${high.toFixed(1)}`);
   assert.ok(low < -25 && high > 25, 'the wind does shift about');
-  assert.ok(widest > 1.1, 'there are fresh spells');
+  assert.ok(widest > 1.3, 'there are squalls');
+  assert.ok(lightest < 0.6, 'there are lulls');
+  assert.ok(gustiest > 0.8, 'gusts pass over');
+  assert.ok(roughest - calmest > 0.4, 'the sea state changes');
   assert.deepEqual(windAt(123.4), windAt(123.4));
 });
 
@@ -526,4 +537,35 @@ test('a competent helmsman sails the whole circuit in a sensible time', (t) => {
   t.diagnostic(`mean circuit time ${mean.toFixed(1)} min`);
   // Loose bounds only: the game should be neither a sprint nor a slog.
   assert.ok(mean > 8 && mean < 60, `mean circuit ${mean.toFixed(1)} minutes`);
+});
+
+test('the rocket drives the boat at ten times the best sailing speed, whatever the wind', () => {
+  const boat = newBoat({ x: 0, z: 0, heading: 0 });
+  const helm = { left: false, right: false, out: false, in: false, engine: false, rocket: true };
+  // Dead into the wind, where no sail draws.
+  const wind = { from: 0, speed: 1 };
+  for (let i = 0; i < 600; i++) {
+    sail(boat, helm, wind, 1 / 60, terrain);
+    boat.x = 0;
+    boat.z = 0;
+  }
+  assert.ok(Math.abs(boat.speed - MAX_SPEED * 10) < 5, `speed ${boat.speed}`);
+  // With the rocket out the way runs off, and the boat is back to sailing speeds.
+  helm.rocket = false;
+  for (let i = 0; i < 60 * 40; i++) {
+    sail(boat, helm, wind, 1 / 60, terrain);
+    boat.x = 0;
+    boat.z = 0;
+  }
+  assert.ok(boat.speed < MAX_SPEED, `speed ${boat.speed}`);
+});
+
+test('the wind is not the same everywhere: gusts lie in patches', () => {
+  const here = windAt(600, 0, 0);
+  let differs = false;
+  for (let x = -1000; x <= 1000; x += 100) {
+    const there = windAt(600, x, 400);
+    if (Math.abs(there.speed - here.speed) > 0.15) differs = true;
+  }
+  assert.ok(differs);
 });

@@ -3,12 +3,12 @@
 // (0 north, clockwise), x runs east and z runs north.
 
 import { EDGE } from './chart-data.js';
-import { isWater } from './terrain.js';
+import { isWater, noise } from './terrain.js';
 
 /**
  * @typedef {import('./terrain.js').Terrain} Terrain
  * @typedef {{ x: number, z: number, heading: number }} Berth
- * @typedef {{ left: boolean, right: boolean, out: boolean, in: boolean, engine: boolean }} Helm
+ * @typedef {{ left: boolean, right: boolean, out: boolean, in: boolean, engine: boolean, rocket?: boolean }} Helm
  */
 
 /**
@@ -26,7 +26,9 @@ import { isWater } from './terrain.js';
 /**
  * @typedef {object} Wind
  * @property {number} from compass bearing the wind blows from
- * @property {number} speed about 0.55 (light airs) to 1.25 (a gust); 1 is a fresh breeze
+ * @property {number} speed about 0.35 (a lull) to 1.6 (a squall); 1 is a fresh breeze
+ * @property {number} [gust] 0..1, how hard it is gusting here and now, on top of the breeze
+ * @property {number} [sea] 0..1, the sea state: calm water to a steep running sea
  */
 
 /**
@@ -41,6 +43,8 @@ import { isWater } from './terrain.js';
 
 /** Best point of sail in a fresh breeze, in units a second. */
 export const MAX_SPEED = 7.5;
+/** Amin mode: a rocket on the stern, ten times the best the sails can do. */
+export const ROCKET_SPEED = MAX_SPEED * 10;
 /** Under engine alone. */
 export const ENGINE_SPEED = 3.4;
 
@@ -90,26 +94,58 @@ function smoothstep(a, b, t) {
   return u * u * (3 - 2 * u);
 }
 
+/** The breeze without its gusts: it freshens and falls light over minutes. @param {number} time */
+function breeze(time) {
+  return (
+    0.92 +
+    0.26 * Math.sin((TAU * time) / 311 + 1.3) +
+    0.17 * Math.sin((TAU * time) / 683 + 4.2) +
+    0.1 * Math.sin((TAU * time) / 97 + 0.4) +
+    0.05 * Math.sin((TAU * time) / 41.3 + 2)
+  );
+}
+
 /**
- * The wind at a moment: a prevailing breeze that veers and backs by up to about 40 degrees
- * over several minutes, freshens and falls light, and gusts a little. No state, never jumps.
+ * The wind at a moment and a place. A prevailing breeze veers and backs by tens of degrees over
+ * minutes, freshens into squalls and falls into lulls; over it, gusts and holes drift downwind
+ * across the sea in patches a few hundred units wide, so two boats a mile apart would not feel
+ * the same wind, and the sea state follows the breeze a minute behind. No state, never jumps.
  * @param {number} time seconds
- * @returns {Wind}
+ * @param {number} [x] where, in world units
+ * @param {number} [z]
+ * @returns {Wind & { gust: number, sea: number }}
  */
-export function windAt(time) {
+export function windAt(time, x = 0, z = 0) {
   const swing =
-    23 * Math.sin((TAU * time) / 437 + 0.6) +
-    13 * Math.sin((TAU * time) / 991 + 2.1) +
-    2.5 * Math.sin((TAU * time) / 71 + 4) +
-    1.2 * Math.sin((TAU * time) / 13.7);
-  const speed =
-    0.9 +
-    0.2 * Math.sin((TAU * time) / 311 + 1.3) +
-    0.08 * Math.sin((TAU * time) / 97 + 0.4) +
-    0.04 * Math.sin((TAU * time) / 17.3 + 2) +
-    0.03 * Math.sin((TAU * time) / 6.1);
-  const from = (PREVAILING + swing * DEG) % TAU;
-  return { from: from < 0 ? from + TAU : from, speed: clamp(speed, 0.55, 1.25) };
+    21 * Math.sin((TAU * time) / 437 + 0.6) +
+    12 * Math.sin((TAU * time) / 991 + 2.1) +
+    6 * Math.sin((TAU * time) / 173 + 5.1) +
+    2.5 * Math.sin((TAU * time) / 71 + 4);
+  const mean = PREVAILING + swing * DEG;
+
+  // Patches of stronger and lighter air, carried along by the breeze itself.
+  const drift = 9 * time;
+  // They drift on the prevailing bearing, not the wind of the moment: that keeps the field
+  // from sweeping sideways as the wind veers.
+  const px = (x + Math.sin(PREVAILING) * drift) / 210;
+  const pz = (z + Math.cos(PREVAILING) * drift) / 210;
+  const patch = noise(px, pz) * 0.65 + noise(px * 2.7 + 31, pz * 2.7 - 17) * 0.35;
+  const gust = smoothstep(0.52, 0.85, patch);
+  const hole = smoothstep(0.42, 0.18, patch);
+  // Quick puffs inside a gust.
+  const puff =
+    0.5 + 0.5 * Math.sin((TAU * time) / 9.3 + px * 9) * Math.sin((TAU * time) / 5.9 + pz * 7);
+
+  const speed = breeze(time) + gust * (0.3 + 0.08 * puff) - hole * 0.28;
+  // A gust heads or lifts the boat by a few degrees.
+  const veer = (noise(px * 1.3 - 50, pz * 1.3 + 80) - 0.5) * 18 * (0.3 + 0.7 * gust);
+  const from = (mean + veer * DEG) % TAU;
+  return {
+    from: from < 0 ? from + TAU : from,
+    speed: clamp(speed, 0.35, 1.6),
+    gust,
+    sea: clamp((breeze(time - 60) - 0.45) / 1.0 + gust * 0.12, 0, 1),
+  };
 }
 
 /**
@@ -196,9 +232,12 @@ export function sail(boat, helm, wind, dt, terrain) {
   // Way: she gathers it in a few seconds and loses it more slowly.
   let target = Math.min(MAX_SPEED * drive, MAX_SPEED * 1.12);
   if (helm.engine) target = Math.max(target, ENGINE_SPEED);
-  const lag = target > boat.speed ? GATHER : CARRY;
+  if (helm.rocket) target = ROCKET_SPEED;
+  const lag = helm.rocket ? 1.2 : target > boat.speed ? GATHER : CARRY;
   boat.speed += (target - boat.speed) * (1 - Math.exp(-dt / lag));
-  boat.speed = clamp(boat.speed, ASTERN, MAX_SPEED * 1.12);
+  // Way left over from the rocket bleeds off through the normal lag rather than vanishing.
+  const top = helm.rocket || boat.speed > MAX_SPEED * 1.2 ? ROCKET_SPEED : MAX_SPEED * 1.12;
+  boat.speed = clamp(boat.speed, ASTERN, top);
 
   // The boom lies to leeward, as far out as the sheet lets it and never past the wind itself.
   // Dead ahead and dead astern it keeps the side it is on, so it does not chatter.

@@ -98,7 +98,7 @@
         <li><strong>Steer</strong> with <kbd>←</kbd> and <kbd>→</kbd>.</li>
         <li><strong>Trim the sails</strong> with <kbd>↑</kbd> (out) and <kbd>↓</kbd> (in) until the boom meets the marker on the wind dial. The instruments say which way.</li>
         <li><strong>Not moving?</strong> <kbd>E</kbd> starts the engine.</li>
-        <li><kbd>M</kbd> is the map, <kbd>R</kbd> the ship's library, <kbd>Q</kbd> the sound. Keep off the rocks.</li>
+        <li><kbd>M</kbd> is the map, <kbd>L</kbd> the ship's library, <kbd>Q</kbd> the sound. Keep off the rocks.</li>
       </ol>
       <p class="ashore">No WebGL aboard? Then this is the logbook, and it has everything the ports would have paid out.</p>
       <button type="button" data-close>Weigh anchor and set sail</button>
@@ -255,6 +255,7 @@
         <div class="gauge speed">
           <p class="figure"><span data-speed>0.0</span> <span class="unit">kn</span></p>
           <p data-power>stopped</p>
+          <p class="fuse" data-rocket-hint data-count="0"><kbd>R</kbd><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span></p>
         </div>
         <div class="gauge trim">
           <p><span class="label">Trim</span> <span data-trim>luffing</span></p>
@@ -315,7 +316,7 @@
       <span>Sound</span>
     </button>
     <voyage-reading>
-      <button type="button" data-reading-toggle aria-expanded="false" aria-controls="reading" aria-keyshortcuts="R">
+      <button type="button" data-reading-toggle aria-expanded="false" aria-controls="reading" aria-keyshortcuts="L">
         <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M12 6.5C10 5 7 4.5 4 5v13c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5Zm0 0v13"/></svg>
         <span>Library</span>
       </button>

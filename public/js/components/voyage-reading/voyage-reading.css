@@ -50,7 +50,7 @@
 
       /* A phone: under the instruments, over the sea, above the thumbs. */
       @media (width < 48rem) {
-        inset-block-start: 7.75rem;
+        inset-block-start: 8.75rem;
         inset-inline: 0.5rem;
         inline-size: auto;
         padding: 0.8rem 1rem 0.6rem;

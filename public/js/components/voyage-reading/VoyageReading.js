@@ -9,7 +9,7 @@ import { voyage } from '#stores/voyage.js';
  * Markup: `button[data-reading-toggle]`, and a `[data-reading-panel]` holding `[data-reading-title]`,
  * `[data-reading-by]`, `[data-reading-count]`, `[data-reading-text]`, `[data-reading-note]`,
  * `button[data-reading-step="-1|1"]` and `button[data-reading-close]`. The empty shelf is what the
- * markup says before anything is found. `R` opens and closes it; Space and the Page keys turn the
+ * markup says before anything is found. `L` opens and closes it; Space and the Page keys turn the
  * page. Any `[data-reading-open="<port>"]` in the document opens that port's passage.
  *
  * Reflects `open`, and `fresh` while a passage has come aboard that has not been opened yet.
@@ -82,7 +82,7 @@ export class VoyageReading extends HTMLElement {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.target instanceof Element && event.target.closest('input, textarea, select')) return;
     if (!this.closest('voyage-sea')?.hasAttribute('live')) return;
-    if (event.key.toLowerCase() === 'r') {
+    if (event.key.toLowerCase() === 'l') {
       this.#open(!this.hasAttribute('open'));
       return;
     }

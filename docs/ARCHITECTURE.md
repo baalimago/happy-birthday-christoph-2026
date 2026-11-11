@@ -253,9 +253,19 @@ inside `<voyage-chart>`.
 - **Splash.** `[data-card="splash"]` in `<voyage-log>` opens first on a new voyage ("Happy Birthday from team
   Wasmer!"); `button[data-next="intro"]` or Escape leads to the intro. While it is open the HUD, helm, map button
   and aids are hidden (`css/utilities.css`).
-- **Reading panel.** `<voyage-reading>` (`js/components/voyage-reading/`) offers a text for the leg towards the
-  first port not yet found, from `js/game/readings.js` (`READINGS`, one per port plus a spare). `R` or
-  `button[data-reading-toggle]` opens it; the boat keeps sailing. May import stores and `game/readings.js`.
+- **Ship's library.** `<voyage-reading>` (`js/components/voyage-reading/`): every place found leaves one passage
+  aboard (`js/game/readings.js`, `READINGS`, one per port, matched by `leg`); only passages whose place is found
+  can be read. `L` or `button[data-reading-toggle]` opens the book; Space and the Page keys turn the page; a
+  port card's `[data-reading-open="<port>"]` opens it at that passage. The boat keeps sailing. The port cards no
+  longer carry wine, coffee and food. May import stores and `game/readings.js`.
+- **Amin mode.** R five times in quick succession (`js/input/helm.js`) sets `helm.rocket`: `sailing.js` drives
+  the boat at `ROCKET_SPEED` (10 x `MAX_SPEED`), the loop slices its steps and caps strike damage, the renderer
+  gets `frame.rocket`, the log `rocket`. `[data-rocket-hint]` (five pips by the speed) shows the fuse.
+- **Dynamic wind.** `windAt(time, x, z)` returns `{ from, speed, gust, sea }`: gust patches and holes drift
+  downwind across the map, the breeze runs from lulls (0.35) to squalls (1.6), `sea` is the sea state. The log
+  also carries `gust`, `sea`, `land` (0 open sea .. 1 on the beach), `cave`, and `kraken` for the wildlife.
+- **Sightings.** `passage.state.sighting` (`{ kind, at } | null`, `passage.sight(kind)`) is how the wildlife tells
+  the soundscape and anyone else what was seen.
 - **Soundscape.** `js/audio/` (see `docs/SOUNDSCAPE.md`), started from `main.js`, driven only by the stores and
   by `data-done` appearing on `[data-goal]` items. `button[data-sound]` or `Q` mutes it. May import stores.
 - **Aids.** `.aids` (in `css/layout.css`) holds the sound button and `<voyage-reading>`: beside the map button on

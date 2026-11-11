@@ -7,19 +7,27 @@ import { Store } from '#lib/store.js';
  * @property {number} heading radians, 0 north, positive clockwise (east is PI / 2)
  * @property {number} speed world units a second; 1 unit a second reads as 1 knot
  * @property {number} windFrom compass bearing the wind blows from, radians
- * @property {number} windSpeed 0 calm .. 1 fresh breeze .. about 1.3 in a gust
+ * @property {number} windSpeed 0.35 in a lull .. 1 fresh breeze .. 1.6 in a squall
  * @property {number} relative where the wind comes from, seen from the boat: 0 on the bow,
  *   positive over the starboard side, -PI..PI
  * @property {number} sheet how far the sails are let out, 0 hauled in .. 1 right out
  * @property {number} best the sheet setting that would drive the boat best now, 0..1
  * @property {number} trim how well the sails are set, 0 flapping .. 1 perfect
  * @property {boolean} engine the engine is running
+ * @property {boolean} [rocket] the rocket is lit (Amin mode)
+ * @property {number} [gust] 0..1, how hard it is gusting on top of windSpeed
+ * @property {number} [sea] 0..1, the sea state where the boat is
+ * @property {number} [land] 0 open sea .. 1 on the beach
+ * @property {boolean} [cave] inside the sea cave
+ * @property {number} [kraken] 0..1, how risen and how close the kraken is
  *
  * @typedef {object} PassageState
  * @property {string | null} near the port the boat lies at
  * @property {Notice} notice
  * @property {boolean} reading a card is open
  * @property {boolean} chart the map is open
+ * @property {{ kind: string, at: number } | null} sighting the last creature seen; `at` counts
+ *   sightings, so the same kind twice in a row is still two changes
  * @property {Log} log
  */
 
@@ -44,7 +52,7 @@ const calm = () => ({
  */
 export class PassageStore extends Store {
   constructor() {
-    super({ near: null, notice: '', reading: false, chart: false, log: calm() });
+    super({ near: null, notice: '', reading: false, chart: false, sighting: null, log: calm() });
   }
 
   /** The boat is at this port, or (null) at none. @param {string | null} port */
@@ -65,6 +73,16 @@ export class PassageStore extends Store {
   /** A card is open (true) or all are closed (false). @param {boolean} reading */
   read(reading) {
     if (reading !== this.state.reading) this.commit({ ...this.state, reading });
+  }
+
+  /**
+   * Something was seen from the deck: 'dolphin-leap', 'whale-blow', 'whale-dive', 'gull-cry',
+   * 'turtle-dive', 'flyingfish', 'kraken-rise', 'kraken-strike', 'kraken-gone'.
+   * @param {string} kind
+   */
+  sight(kind) {
+    const at = (this.state.sighting?.at ?? 0) + 1;
+    this.commit({ ...this.state, sighting: { kind, at } });
   }
 
   /** Unroll the map (true) or put it away (false). @param {boolean} chart */

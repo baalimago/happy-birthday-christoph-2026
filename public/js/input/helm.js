@@ -2,10 +2,11 @@
 //   steer        ArrowLeft / ArrowRight, or A / D
 //   sheet        ArrowUp lets the sails out, ArrowDown hauls them in (or W / S)
 //   engine       E switches it on and off
+//   rocket       R five times in quick succession lights it, and five more puts it out (Amin mode)
 
 /**
- * @typedef {{ left: boolean, right: boolean, out: boolean, in: boolean, engine: boolean }} Helm
- *   left, right, out and in are true while held; engine stays on until switched off
+ * @typedef {{ left: boolean, right: boolean, out: boolean, in: boolean, engine: boolean, rocket: boolean }} Helm
+ *   left, right, out and in are true while held; engine and rocket stay on until switched off
  * @typedef {'left' | 'right' | 'out' | 'in'} Order
  */
 
@@ -23,6 +24,9 @@ const KEYS = {
 
 /** How long a keyboard press of an on-screen button holds its order, in milliseconds. */
 const NUDGE = 450;
+/** R this many times, each within this many milliseconds of the last, lights the rocket. */
+const FUSE = 5;
+const FUSE_GAP = 900;
 
 /**
  * Listen for steering until the signal aborts. The returned object is live: read it every frame.
@@ -34,7 +38,7 @@ const NUDGE = 450;
  */
 export function takeHelm(root, signal) {
   /** @type {Helm} */
-  const helm = { left: false, right: false, out: false, in: false, engine: false };
+  const helm = { left: false, right: false, out: false, in: false, engine: false, rocket: false };
   const release = () => {
     helm.left = helm.right = helm.out = helm.in = false;
   };
@@ -43,6 +47,35 @@ export function takeHelm(root, signal) {
     for (const button of root.querySelectorAll('button[data-helm="engine"]')) {
       button.setAttribute('aria-pressed', String(helm.engine));
     }
+  };
+
+  // The fuse: `[data-rocket-hint]` elements show how far it has burnt (`data-count`) and
+  // whether the rocket is lit (`data-lit`).
+  let burnt = 0;
+  let lastPress = 0;
+  const showFuse = () => {
+    for (const hint of root.querySelectorAll('[data-rocket-hint]')) {
+      hint.setAttribute('data-count', String(burnt));
+      hint.toggleAttribute('data-lit', helm.rocket);
+    }
+  };
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
+  let fizzle;
+  signal.addEventListener('abort', () => clearTimeout(fizzle));
+  const pressFuse = () => {
+    const now = performance.now();
+    burnt = now - lastPress < FUSE_GAP ? burnt + 1 : 1;
+    lastPress = now;
+    if (burnt >= FUSE) {
+      burnt = 0;
+      helm.rocket = !helm.rocket;
+    }
+    showFuse();
+    clearTimeout(fizzle);
+    fizzle = setTimeout(() => {
+      burnt = 0;
+      showFuse();
+    }, FUSE_GAP);
   };
 
   /** @param {KeyboardEvent} event */
@@ -61,6 +94,7 @@ export function takeHelm(root, signal) {
       if (typing(event)) return;
       const key = keyOf(event);
       if (key === 'e' && !event.repeat) switchEngine();
+      if (key === 'r' && !event.repeat) pressFuse();
       const order = KEYS[key];
       if (!order) return;
       helm[order] = true;

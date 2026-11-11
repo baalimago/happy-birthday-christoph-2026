@@ -1,6 +1,6 @@
 import { START } from '#game/chart-data.js';
 import { bearingTo, damageFor, newBoat, sail, windAt } from '#game/sailing.js';
-import { getTerrain, insideCave, isWater } from '#game/terrain.js';
+import { getTerrain, heightAt, insideCave, isWater } from '#game/terrain.js';
 import { takeHelm } from '#input/helm.js';
 import { createRenderer } from '#render/renderer.js';
 import { VIEWS } from '#render/views.js';
@@ -102,7 +102,7 @@ export class VoyageSea extends HTMLElement {
   /** @type {Terrain | undefined} */
   #terrain;
   /** @type {import('#input/helm.js').Helm} */
-  #helm = { left: false, right: false, out: false, in: false, engine: false };
+  #helm = { left: false, right: false, out: false, in: false, engine: false, rocket: false };
   /** @type {Mark[]} */
   #marks = [];
   #boat = newBoat(START);
@@ -276,7 +276,7 @@ export class VoyageSea extends HTMLElement {
     if (!this.#still) this.#time += dt;
 
     const hoveTo = passage.state.reading || passage.state.chart;
-    const wind = windAt(this.#watch);
+    const wind = windAt(this.#watch, this.#boat.x, this.#boat.z);
     // Hove to, the clock stops but the instruments still read.
     const step = hoveTo ? 0 : dt;
     this.#watch += step;
@@ -308,7 +308,8 @@ export class VoyageSea extends HTMLElement {
     const share = found.length ? found.filter(Boolean).length / found.length : 0;
     this.#end += (share - this.#end) * Math.min(1, dt * 0.6);
 
-    renderer.draw({
+    // Built apart from the call: the frame may carry more than a renderer of the day reads.
+    const frame = {
       dt,
       time: this.#time,
       boat,
@@ -317,11 +318,13 @@ export class VoyageSea extends HTMLElement {
         this.getAttribute('data-view') ?? VIEWS[0]
       ),
       camera: { yaw: this.#yaw, pitch: this.#pitch, distance: this.#distance },
-      shift: [this.#shiftX, this.#shiftY],
+      shift: /** @type {[number, number]} */ ([this.#shiftX, this.#shiftY]),
       end: this.#end,
       sun: SUN,
       wind,
-    });
+      rocket: this.#helm.rocket ? 1 : 0,
+    };
+    renderer.draw(frame);
   }
 
   /**
@@ -333,12 +336,19 @@ export class VoyageSea extends HTMLElement {
    */
   #sail(dt, wind, terrain, real) {
     const boat = this.#boat;
-    const outcome = sail(boat, this.#helm, wind, dt, terrain);
+    // Under the rocket the boat covers boat lengths in a frame: take the step in slices, so that
+    // no rock slips between two looks ahead.
+    const slices = this.#helm.rocket || boat.speed > 12 ? 8 : 1;
+    let outcome = sail(boat, this.#helm, wind, dt / slices, terrain);
+    for (let i = 1; i < slices && !outcome.event; i++) {
+      outcome = sail(boat, this.#helm, wind, dt / slices, terrain);
+    }
     if (Math.abs(boat.speed) > 0.5) voyage.setSail();
 
     this.#hold = Math.max(0, this.#hold - dt);
     if (outcome.event === 'aground') {
-      voyage.damage(damageFor(outcome.impact));
+      // A rocket-speed strike is a joke, not a death sentence: it costs what a hard grounding costs.
+      voyage.damage(damageFor(Math.min(outcome.impact, 6)));
       if (voyage.state.hull <= 0) {
         this.#wreck();
         return;
@@ -366,6 +376,12 @@ export class VoyageSea extends HTMLElement {
         best: outcome.best,
         trim: outcome.trim,
         engine: this.#helm.engine,
+        rocket: this.#helm.rocket,
+        gust: wind.gust,
+        sea: wind.sea,
+        // Shoaling water means land is near: the sea floor runs down to -5 about 40 units out.
+        land: Math.min(1, Math.max(0, (heightAt(terrain, boat.x, boat.z) + 5) / 5)),
+        cave: insideCave(terrain.cave, boat.x, boat.z) > 0,
       });
     }
   }

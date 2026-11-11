@@ -65,12 +65,12 @@ test('/ passes axe at sea with the reading panel and the chart open', async ({ p
   await weighAnchor(page);
   await page.locator('voyage-log [data-card="intro"] [data-close]').click();
   await upgraded(page);
-  await page.keyboard.press('r');
+  await page.keyboard.press('l');
   await expect(page.locator('voyage-reading [data-reading-panel]')).toBeVisible();
   const reading = await new AxeBuilder({ page }).withTags(tags).analyze();
   expect(reading.violations).toEqual([]);
 
-  await page.keyboard.press('r');
+  await page.keyboard.press('l');
   await page.keyboard.press('m');
   await expect(page.locator('voyage-chart dialog')).toBeVisible();
   const chart = await new AxeBuilder({ page }).withTags(tags).analyze();

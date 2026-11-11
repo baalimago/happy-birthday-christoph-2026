@@ -48,11 +48,11 @@ const discover = (page, ports) =>
     for (const id of ids) voyage.discover(id);
   }, ports);
 
-test('is out of sight ashore, and R does nothing there', async ({ page }) => {
+test('is out of sight ashore, and L does nothing there', async ({ page }) => {
   const reading = await openReading(page, { live: false });
   await expect(page.locator('.aids')).toBeHidden();
   await expect(reading.locator('[data-reading-toggle]')).toBeHidden();
-  await page.keyboard.press('r');
+  await page.keyboard.press('l');
   await expect(reading).not.toHaveAttribute('open');
 });
 
@@ -61,7 +61,7 @@ test('the button opens and closes the panel', async ({ page }) => {
   const toggle = reading.locator('[data-reading-toggle]');
   const panel = reading.locator('[data-reading-panel]');
   await expect(toggle).toBeVisible();
-  await expect(toggle).toHaveAttribute('aria-keyshortcuts', 'R');
+  await expect(toggle).toHaveAttribute('aria-keyshortcuts', 'L');
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await expect(panel).toBeHidden();
 
@@ -76,12 +76,12 @@ test('the button opens and closes the panel', async ({ page }) => {
   await expect(panel).toBeHidden();
 });
 
-test('R opens and closes it, and typing in a field is left alone', async ({ page }) => {
+test('L opens and closes it, and typing in a field is left alone', async ({ page }) => {
   const reading = await openReading(page);
-  await page.keyboard.press('r');
+  await page.keyboard.press('l');
   await expect(reading).toHaveAttribute('open');
   await expect(reading.locator('[data-reading-panel]')).toBeVisible();
-  await page.keyboard.press('R');
+  await page.keyboard.press('L');
   await expect(reading).not.toHaveAttribute('open');
 
   await page.keyboard.press('Control+r');
@@ -92,9 +92,9 @@ test('R opens and closes it, and typing in a field is left alone', async ({ page
     document.querySelector('voyage-sea')?.append(field);
     field.focus();
   });
-  await page.keyboard.press('r');
+  await page.keyboard.press('l');
   await expect(reading).not.toHaveAttribute('open');
-  await expect(page.getByLabel('Scratch')).toHaveValue('r');
+  await expect(page.getByLabel('Scratch')).toHaveValue('l');
 });
 
 test('a fresh voyage has an empty shelf: no passage can be read before a place is found', async ({
@@ -187,7 +187,7 @@ test('a port card offers its passage, and taking the offer opens the book at it'
 test('Space and the Page keys turn the page while the book is open', async ({ page }) => {
   await page.setViewportSize({ width: 1000, height: 500 });
   const reading = await openReading(page, { found: ['edge'] });
-  await page.keyboard.press('r');
+  await page.keyboard.press('l');
   const text = reading.locator('[data-reading-text]');
   await expect(text).toBeVisible();
   const top = () => text.evaluate((element) => element.scrollTop);
