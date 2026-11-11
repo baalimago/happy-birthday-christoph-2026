@@ -8,6 +8,7 @@ import { createBeacons, createPorts } from './ports.js';
 import { createSea } from './sea.js';
 import { createSky } from './sky.js';
 import { createTerrain } from './terrain.js';
+import { createTrail } from './trail.js';
 import { createTrees } from './trees.js';
 import { createVolcano } from './volcano.js';
 
@@ -25,5 +26,6 @@ export const PARTS = [
   createCreatures,
   createSea,
   createVolcano,
+  createTrail,
   createBeacons,
 ];

@@ -269,7 +269,7 @@ export function createSea({ gl, programs, terrain }) {
 
       const speed = frame.boat.speed;
       const rocket = (frame.rocket ?? 0) > 0.5;
-      if (speed > 0.8 || rocket) {
+      if ((speed > 0.8 || rocket) && (frame.boat.aloft ?? 0) < 0.5) {
         const fast = Math.min(speed, 12);
         scene.bind(wakeProgram);
         gl.uniform4f(

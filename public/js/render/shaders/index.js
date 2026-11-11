@@ -89,7 +89,7 @@ void main(){
   float k = uRes.y/700.0;
   vec2 uv = (fc - 0.5*uRes)/uRes.y - uShift;
   // the camera orbits the boat, in the boat's frame
-  vec3 ta = vec3(0.0, 1.1, 0.0);
+  vec3 ta = vec3(0.0, 1.1 + uAloft, 0.0);
   vec3 cam = ta + uDist*vec3(cos(uPitch)*sin(uYaw), sin(uPitch), cos(uPitch)*cos(uYaw));
   vec3 f = normalize(ta - cam), r = normalize(cross(vec3(0,1,0), f)), u = cross(f, r);
   vec3 rdb = normalize(f*1.25 + r*uv.x + u*uv.y);
@@ -161,5 +161,21 @@ void main(){
   }
   ${SMOKES}
   ${dispatch((id) => `col = post_${id}(col, rd, fc, k)`)}
+  // Syrus mode: a ribbon of six colours streams out astern, in steps, its colours its own in every view
+  if (uAloft > 0.3 && abs(rdb.y) > 1e-4) {
+    float th = (uAloft + 0.7 - cam.y)/rdb.y;
+    if (th > 0.0 && th < gT) {
+      vec3 pr = cam + rdb*th;
+      float along = -pr.z - 1.7, len = 26.0;
+      float xb = pr.x + 0.16*(step(0.5, fract(along*0.22 - uT*2.4)) - 0.5);
+      if (along > 0.0 && along < len && abs(xb) < 0.75) {
+        float band = floor((xb + 0.75)/1.5*6.0);
+        vec3 rb = band < 0.5 ? vec3(1.0, 0.16, 0.2) : band < 1.5 ? vec3(1.0, 0.6, 0.1) :
+                  band < 2.5 ? vec3(1.0, 0.93, 0.15) : band < 3.5 ? vec3(0.2, 0.9, 0.3) :
+                  band < 4.5 ? vec3(0.15, 0.6, 1.0) : vec3(0.55, 0.3, 1.0);
+        col = mix(col, rb, 0.92*smoothstep(len, len*0.55, along)*smoothstep(0.3, 0.9, uAloft));
+      }
+    }
+  }
   outColor = vec4(col, 1.0);
 }`;

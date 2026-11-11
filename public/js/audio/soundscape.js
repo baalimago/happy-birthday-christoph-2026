@@ -13,6 +13,7 @@
 import { passage as passageStore } from '#stores/passage.js';
 import { voyage as voyageStore } from '#stores/voyage.js';
 import { cues, mix } from './mix.js';
+import { createJingle } from './jingle.js';
 import { createMusic, reverb } from './music.js';
 import { beds, brownNoise, creak, drip, gull, play, whiteNoise } from './voices.js';
 import { slap, spray, surf, wave } from './waves.js';
@@ -279,6 +280,9 @@ export function startSoundscape(signal, opts = {}) {
       else surf(ctx, water, buf, at, e.size, e.pan);
     }
     if (music) graph.music.tick(t, { energy: levels.energy, dark: levels.dark });
+    // Syrus mode has a tune of its own, and the music makes way for it.
+    graph.jingle.tick(t, levels.syrus > 0);
+    graph.musicBus.gain.setTargetAtTime(music && !levels.syrus ? MUSIC_GAIN : 0, t, 0.4);
     if (levels.cave > 0 && t >= nextDrip) {
       if (nextDrip > 0) drip(ctx, graph.bus, t + 0.05, 0.05 + 0.05 * Math.random());
       nextDrip = t + 0.4 + Math.random() * 2.6;
@@ -417,7 +421,7 @@ export function startSoundscape(signal, opts = {}) {
  * @typedef {{
  *   ctx: AudioContext | OfflineAudioContext, master: GainNode, bus: GainNode, cues: GainNode,
  *   water: GainNode, musicBus: GainNode, cave: GainNode, music: ReturnType<typeof createMusic>,
- *   room: ConvolverNode, dread: ReturnType<typeof dread>,
+ *   jingle: ReturnType<typeof createJingle>, room: ConvolverNode, dread: ReturnType<typeof dread>,
  *   bed: ReturnType<typeof beds>, white: AudioBuffer, brown: AudioBuffer,
  *   levels: import('./mix.js').Levels | null,
  * }} Graph
@@ -455,6 +459,7 @@ function build(ctx) {
   const brown = brownNoise(ctx, 6);
   const bed = beds(ctx, bus, { white, brown });
   const music = createMusic(ctx, musicBus, room);
+  const jingle = createJingle(ctx, master);
   const fear = dread(ctx, master, { white, brown }); // not ducked: the kraken does not wait
   return {
     room,
@@ -467,6 +472,7 @@ function build(ctx) {
     musicBus,
     cave,
     music,
+    jingle,
     bed,
     white,
     brown,

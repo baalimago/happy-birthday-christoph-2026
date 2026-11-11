@@ -376,7 +376,7 @@ export class VoyageHud extends HTMLElement {
     this.#flag('.instruments', 'data-irons', irons);
     // What to do about it, in plain words. Under engine the sails do not matter.
     let advice = '';
-    if (anchored) advice = '';
+    if (anchored || passage.state.log.syrus) advice = '';
     else if (irons) advice = 'In irons: bear away or start the engine';
     else if (!engine && trim <= 0.8) {
       advice =
@@ -390,7 +390,10 @@ export class VoyageHud extends HTMLElement {
       const first = this.querySelector('li[data-goal^="port:"]')?.getAttribute('data-goal') ?? '';
       const done = voyage.state.found.includes(first.slice(5));
       let lesson = '';
-      if (!done && anchored) {
+      if (passage.state.log.syrus) {
+        lesson =
+          'Syrus mode: she flies over everything. Steer with ← and →. T lands her on the water.';
+      } else if (!done && anchored) {
         lesson = 'At anchor: she is held where she lies. Press X to weigh anchor and sail on.';
       } else if (!done && engine) {
         lesson = 'Engine on. Steer (← →) for the lighthouse ahead.';
@@ -417,7 +420,8 @@ export class VoyageHud extends HTMLElement {
     // Speed, and what drives the boat.
     const knots = Math.max(0, speed).toFixed(1);
     let power = 'under sail';
-    if (anchored) power = 'at anchor (X weighs it)';
+    if (passage.state.log.syrus) power = 'Syrus mode (T lands her)';
+    else if (anchored) power = 'at anchor (X weighs it)';
     else if (passage.state.log.rocket) power = 'Amin mode (R stops it)';
     else if (engine) power = 'under engine';
     else if (speed < 0.05) power = 'stopped';

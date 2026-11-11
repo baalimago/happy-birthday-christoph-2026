@@ -24,7 +24,8 @@ import { RUNS } from './shaders/scene.js';
 /**
  * The boat: world position, heading in radians (0 is north, +z; positive turns to starboard),
  * speed, heel, and the angle of the boom off the centreline (positive to starboard).
- * @typedef {{ x: number, z: number, heading: number, speed: number, lean: number, boom: number }} FrameBoat
+ * @typedef {{ x: number, z: number, heading: number, speed: number, lean: number, boom: number, aloft?: number }} FrameBoat
+ *   aloft is how high she flies over the still water (Syrus mode)
  */
 
 /**
@@ -146,6 +147,7 @@ const UNIFORMS = /** @type {const} */ ([
   'uWave',
   'uPennant',
   'uRocket',
+  'uAloft',
   'uBeast',
   'uKraken',
   'uSea',
@@ -578,7 +580,10 @@ export function createRenderer(canvas, terrain) {
       gl.uniform1f(at.uPitch, camera.pitch);
       gl.uniform1f(at.uDist, camera.distance);
       gl.uniform1f(at.uEnd, frame.end);
-      gl.uniform1f(at.uSpeed, boat.speed);
+      const aloft = boat.aloft ?? 0;
+      gl.uniform1f(at.uAloft, aloft);
+      // In the air she leaves no wake.
+      gl.uniform1f(at.uSpeed, aloft > 0.5 ? 0 : boat.speed);
       gl.uniform1f(at.uLean, boat.lean);
       gl.uniform1f(at.uBoom, boat.boom);
       gl.uniform1i(at.uMode, Math.max(0, VIEWS.indexOf(frame.view)));

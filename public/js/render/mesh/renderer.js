@@ -140,7 +140,7 @@ export function createMeshRenderer(canvas, terrain) {
       resize();
       const { width, height } = canvas;
       const { boat } = frame;
-      const camera = cameraOf(boat, frame.camera, frame.shift, width / height);
+      const camera = cameraOf(boat, frame.camera, frame.shift, width / height, boat.aloft ?? 0);
       const look = lookAt(frame.end);
       const mode = Math.max(0, VIEWS.indexOf(frame.view));
       const sin = Math.sin(boat.heading);

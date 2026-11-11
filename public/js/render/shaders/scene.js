@@ -32,6 +32,7 @@ uniform vec4 uWind;                      // xy: the way the wind blows; zw: the 
 uniform float uWindSpeed;
 uniform vec3 uWave;                      // phases of the wave trains under the boat
 uniform vec2 uPennant;                   // the way the pennant streams, in the boat's frame
+uniform float uAloft;                    // how high she flies over the still water (Syrus mode)
 uniform float uRocket;                   // 1 while the rocket on the stern burns, else 0
 uniform float uSea, uGust;               // sea state 0 calm .. 1 a steep running sea; the gust on the boat 0..1
 uniform float uPhase[${RUNS}];           // phases under the boat of the swell (0), two more wind waves
@@ -374,7 +375,7 @@ float sdTri(vec2 p, vec2 p0, vec2 p1, vec2 p2){
 }
 // the boat's own coordinates: it bobs, heels and pitches on the swell
 vec3 boatLocal(vec3 p){
-  vec3 q = p - vec3(0.0, gRide.x + 0.03 + 0.05*uRocket, 0.0);
+  vec3 q = p - vec3(0.0, gRide.x + 0.03 + 0.05*uRocket + uAloft, 0.0);
   float a = 0.07*sin(uT*1.3) - uLean, c = cos(a), s = sin(a);   // uLean > 0 heels to starboard
   q.xy = mat2(c, -s, s, c)*q.xy;
   a = 0.03*sin(uT*0.9 + 1.0) - gRide.y - 0.07*uRocket; c = cos(a); s = sin(a);   // the rocket lifts her bow
@@ -472,7 +473,7 @@ vec3 boatN(vec3 p){
 }
 // o and d in the boat's frame; returns the distance or -1, and the part hit
 float marchBoat(vec3 o, vec3 d, float tMax, out float id){
-  vec3 oc = o - vec3(0.0, 1.3, 0.0);
+  vec3 oc = o - vec3(0.0, 1.3 + uAloft, 0.0);
   float reach = 2.9 + 0.6*uRocket;             // the flame trails out astern
   float b = dot(oc, d), disc = b*b - dot(oc, oc) + reach*reach;
   if (disc < 0.0) return -1.0;

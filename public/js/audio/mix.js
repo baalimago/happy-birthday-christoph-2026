@@ -5,7 +5,7 @@
  * @typedef {{
  *   heading?: number, speed?: number, windFrom?: number, windSpeed?: number, relative?: number,
  *   sheet?: number, best?: number, trim?: number, engine?: boolean, land?: number,
- *   gust?: number, sea?: number, cave?: boolean, rocket?: boolean, kraken?: number
+ *   gust?: number, sea?: number, cave?: boolean, rocket?: boolean, syrus?: boolean, kraken?: number
  * }} Log
  *   the boat's log as voyage-sea writes it; `land` (0 open sea .. 1 on the beach), `gust` and `sea`
  *   (0..1), `cave` and `rocket` are optional
@@ -17,7 +17,7 @@
  * @typedef {{
  *   sea: number, seaTone: number, wash: number, washTone: number, wind: number, windTone: number,
  *   whistle: number, luff: number, engine: number, enginePitch: number, gulls: number, creak: number,
- *   duck: number, rocket: number, rocketTone: number, breeze: number, speed: number, land: number,
+ *   duck: number, rocket: number, syrus: number, rocketTone: number, breeze: number, speed: number, land: number,
  *   cave: number, gust: number | null, seaState: number | null, energy: number, dark: number,
  *   kraken: number
  * }} Levels
@@ -74,7 +74,7 @@ export function mix(passage, voyage = {}) {
     // The bed is only the distant sea now; single waves (weather.js, waves.js) carry the rest.
     sea: (0.35 + 0.25 * wind) * (1 - 0.7 * cave),
     seaTone: 380 + 420 * wind,
-    wash: speed,
+    wash: log?.syrus ? 0 : speed, // in the air there is no water on the hull
     washTone: 600 + 2000 * speed,
     wind: (0.2 + 0.7 * wind) * (1 - 0.8 * cave),
     windTone: 320 + 700 * wind,
@@ -86,6 +86,7 @@ export function mix(passage, voyage = {}) {
     creak: clamp01(0.15 + 0.5 * speed + 0.25 * wind + 0.6 * worn),
     duck: passage.reading || passage.chart ? 0.3 : 1,
     rocket,
+    syrus: log?.syrus ? 1 : 0,
     rocketTone: 500 + 2500 * clamp01((log?.speed ?? 0) / 75),
     breeze: wind,
     speed,

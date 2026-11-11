@@ -3,12 +3,12 @@
 // (0 north, clockwise), x runs east and z runs north.
 
 import { EDGE } from './chart-data.js';
-import { isWater, noise } from './terrain.js';
+import { heightAt, isWater, noise } from './terrain.js';
 
 /**
  * @typedef {import('./terrain.js').Terrain} Terrain
  * @typedef {{ x: number, z: number, heading: number }} Berth
- * @typedef {{ left: boolean, right: boolean, out: boolean, in: boolean, engine: boolean, rocket?: boolean, anchor?: boolean }} Helm
+ * @typedef {{ left: boolean, right: boolean, out: boolean, in: boolean, engine: boolean, rocket?: boolean, anchor?: boolean, syrus?: boolean }} Helm
  */
 
 /**
@@ -21,6 +21,8 @@ import { isWater, noise } from './terrain.js';
  * @property {number} sheet from 0, hauled right in, to 1, right out
  * @property {number} boom angle of the boom off the centreline in radians, positive when the
  *   sail lies to starboard
+ * @property {number} [aloft] how high she flies over the still water (Syrus mode); 0 or absent
+ *   when she floats
  */
 
 /**
@@ -45,6 +47,11 @@ import { isWater, noise } from './terrain.js';
 export const MAX_SPEED = 7.5;
 /** Amin mode: a rocket on the stern, ten times the best the sails can do. */
 export const ROCKET_SPEED = MAX_SPEED * 10;
+/** Syrus mode: she flies at this speed, this far clear of the water and of whatever lies ahead. */
+export const FLY_SPEED = 17;
+const FLY_CLEAR = 7;
+/** Higher than this she touches nothing. */
+const AIRBORNE = 0.4;
 /** Seconds for the anchor to take most of the way off her. */
 const ANCHOR_BITE = 0.8;
 /** Under engine alone. */
@@ -234,16 +241,33 @@ export function sail(boat, helm, wind, dt, terrain) {
   // Way: she gathers it in a few seconds and loses it more slowly.
   let target = Math.min(MAX_SPEED * drive, MAX_SPEED * 1.12);
   if (helm.engine) target = Math.max(target, ENGINE_SPEED);
+  // Syrus mode: she flies. Switched off over land, she flies on until there is water to land on.
+  const high = boat.aloft ?? 0;
+  const ahead = (/** @type {number} */ d) =>
+    heightAt(terrain, boat.x + Math.sin(boat.heading) * d, boat.z + Math.cos(boat.heading) * d);
+  const dry = high > 0 && [-4, 0, 4, 9].some((d) => ahead(d) > -0.3);
+  const flying = helm.syrus === true || dry;
+  if (flying || high > 0) {
+    // Over whatever lies under her and a few seconds ahead.
+    const ground = Math.max(0, ...[0, 6, 14, 24, 36, 50].map(ahead));
+    const want = flying ? FLY_CLEAR + ground * 1.08 + (ground > 0 ? 4 : 0) : 0;
+    const rate = want > high ? 0.6 : 1.4;
+    let next = high + (want - high) * (1 - Math.exp(-dt / rate));
+    if (!flying && next < 0.05) next = 0;
+    boat.aloft = next;
+  }
+  if (flying) target = Math.max(target, FLY_SPEED);
   if (helm.rocket) target = ROCKET_SPEED;
   // The anchor is down: whatever drives her, she is brought up gently and held.
-  if (helm.anchor) target = 0;
+  if (helm.anchor && !dry) target = 0;
   let lag = target > boat.speed ? GATHER : CARRY;
   if (helm.rocket) lag = 1.2;
   if (helm.anchor) lag = ANCHOR_BITE;
   boat.speed += (target - boat.speed) * (1 - Math.exp(-dt / lag));
   if (helm.anchor && Math.abs(boat.speed) < 0.05) boat.speed = 0;
   // Way left over from the rocket bleeds off through the normal lag rather than vanishing.
-  const top = helm.rocket || boat.speed > MAX_SPEED * 1.2 ? ROCKET_SPEED : MAX_SPEED * 1.12;
+  const top =
+    helm.rocket || flying || boat.speed > MAX_SPEED * 1.2 ? ROCKET_SPEED : MAX_SPEED * 1.12;
   boat.speed = clamp(boat.speed, ASTERN, top);
 
   // The boom lies to leeward, as far out as the sheet lets it and never past the wind itself.
@@ -281,7 +305,10 @@ export function sail(boat, helm, wind, dt, terrain) {
     // A point already ashore (she swung onto it while turning) must not hold her fast.
     return !isWater(terrain, x + ox, z + oz) && isWater(terrain, boat.x + ox, boat.z + oz);
   };
-  if (
+  if ((boat.aloft ?? 0) > AIRBORNE) {
+    boat.x = x;
+    boat.z = z;
+  } else if (
     !isWater(terrain, x, z) ||
     strikes(end, 0) ||
     strikes(0, HALF_BEAM) ||

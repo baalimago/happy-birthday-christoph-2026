@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { EDGE, START } from './chart-data.js';
 import { ENGINE_SPEED, MAX_SPEED, bearingTo, damageFor, newBoat, sail, windAt } from './sailing.js';
-import { getTerrain, isWater } from './terrain.js';
+import { getTerrain, heightAt, isWater } from './terrain.js';
 
 /**
  * @typedef {import('./sailing.js').Boat} Boat
@@ -585,4 +585,30 @@ test('the anchor brings her up gently and holds her against wind, engine and roc
   assert.deepEqual([boat.x, boat.z], [x, z]);
   for (let i = 0; i < 40; i++) sail(boat, { ...helm, rocket: false }, wind, 0.05, terrain);
   assert.ok(boat.speed > 1, 'anchor weighed, she gathers way again');
+});
+
+test('Syrus mode: she lifts off, flies over the land without touching it and lands on water', () => {
+  const boat = newBoat({ ...START, heading: 0 });
+  const wind = { from: Math.PI, speed: 0.8 };
+  const helm = { left: false, right: false, out: false, in: false, engine: false, syrus: true };
+  let grounded = 0;
+  let overLand = 0;
+  for (let i = 0; i < 3000; i++) {
+    // Circle slowly, so she crosses whatever lies about the harbour.
+    const outcome = sail(boat, { ...helm, right: i % 400 < 60 }, wind, 0.05, terrain);
+    if (outcome.event === 'aground') grounded++;
+    if (!isWater(terrain, boat.x, boat.z)) {
+      overLand++;
+      assert.ok((boat.aloft ?? 0) > heightAt(terrain, boat.x, boat.z) + 2, 'clear of the ground');
+    }
+  }
+  assert.equal(grounded, 0);
+  assert.ok((boat.aloft ?? 0) > 5);
+  assert.ok(boat.speed > 12);
+  for (let i = 0; i < 2000 && (boat.aloft ?? 0) > 0; i++) {
+    sail(boat, { ...helm, syrus: false }, wind, 0.05, terrain);
+  }
+  assert.equal(boat.aloft, 0);
+  assert.ok(isWater(terrain, boat.x, boat.z), 'she came down on the water');
+  assert.ok(overLand >= 0);
 });

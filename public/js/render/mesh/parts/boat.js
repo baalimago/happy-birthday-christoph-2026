@@ -454,7 +454,7 @@ export function createBoat({ gl, programs }) {
         [cos, 0, -sin],
         [0, 1, 0],
         [sin, 0, cos],
-        [boat.x, 0.03 + 0.05 * burning + heave, boat.z],
+        [boat.x, 0.03 + 0.05 * burning + heave + (boat.aloft ?? 0), boat.z],
       );
       turnAbout(heel, [0, 0, 0], [0, 0, 1], -roll);
       turnAbout(pitch, [0, 0, 0], [1, 0, 0], -nod);

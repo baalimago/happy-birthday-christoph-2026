@@ -127,6 +127,7 @@ export class VoyageSea extends HTMLElement {
     engine: false,
     rocket: false,
     anchor: false,
+    syrus: false,
   };
   /** @type {Mark[]} */
   #marks = [];
@@ -445,13 +446,15 @@ export class VoyageSea extends HTMLElement {
       const keen = Math.min(1, (this.#letGo - (fear ? 0 : LINGER)) / 1.5);
       const ease = Math.min(1, dt * (fear ? 1.2 : 0.9) * keen);
       this.#yaw += Math.atan2(Math.sin(restYaw - this.#yaw), Math.cos(restYaw - this.#yaw)) * ease;
-      const pitch = under ? CAVE_PITCH : fear ? KRAKEN_PITCH : REST_PITCH;
+      const pitch = under ? CAVE_PITCH : fear ? KRAKEN_PITCH : REST_PITCH + (boat.aloft ? 0.14 : 0);
       this.#pitch += (pitch - this.#pitch) * ease;
     } else if (under) {
       this.#pitch = Math.min(this.#pitch, 0.3);
     }
     this.#headed = boat.heading;
-    const distance = under ? CAVE_DISTANCE : fear ? KRAKEN_DISTANCE : REST_DISTANCE;
+    const flying = (boat.aloft ?? 0) > 0.3;
+    let distance = under ? CAVE_DISTANCE : fear ? KRAKEN_DISTANCE : REST_DISTANCE;
+    if (flying) distance = REST_DISTANCE * 1.5;
     this.#distance += (distance - this.#distance) * Math.min(1, dt * (fear ? 0.7 : 2));
 
     // Keep the boat clear of an open card: beside it on wide screens, above it on narrow ones.
@@ -541,6 +544,7 @@ export class VoyageSea extends HTMLElement {
         engine: this.#helm.engine,
         rocket: this.#helm.rocket,
         anchor: this.#helm.anchor,
+        syrus: (boat.aloft ?? 0) > 0.3,
         gust: wind.gust,
         sea: wind.sea,
         // Shoaling water means land is near: the sea floor runs down to -5 about 40 units out.

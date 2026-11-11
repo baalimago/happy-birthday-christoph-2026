@@ -3,10 +3,11 @@
 //   sheet        ArrowUp lets the sails out, ArrowDown hauls them in (or W / S)
 //   engine       E switches it on and off
 //   anchor       X drops it and weighs it
+//   syrus        T five times in quick succession and she flies; T once more lands her (Syrus mode)
 //   rocket       R five times in quick succession lights it, and R once more puts it out (Amin mode)
 
 /**
- * @typedef {{ left: boolean, right: boolean, out: boolean, in: boolean, engine: boolean, rocket: boolean, anchor: boolean }} Helm
+ * @typedef {{ left: boolean, right: boolean, out: boolean, in: boolean, engine: boolean, rocket: boolean, anchor: boolean, syrus: boolean }} Helm
  *   left, right, out and in are true while held; engine, rocket and anchor stay until switched
  * @typedef {'left' | 'right' | 'out' | 'in'} Order
  */
@@ -47,6 +48,7 @@ export function takeHelm(root, signal) {
     engine: false,
     rocket: false,
     anchor: false,
+    syrus: false,
   };
   const release = () => {
     helm.left = helm.right = helm.out = helm.in = false;
@@ -96,6 +98,24 @@ export function takeHelm(root, signal) {
     }, FUSE_GAP);
   };
 
+  // The other fuse, with nothing on screen to give it away.
+  let wound = 0;
+  let lastWind = 0;
+  const pressSyrus = () => {
+    if (helm.syrus) {
+      helm.syrus = false;
+      wound = 0;
+      return;
+    }
+    const now = performance.now();
+    wound = now - lastWind < FUSE_GAP ? wound + 1 : 1;
+    lastWind = now;
+    if (wound >= FUSE) {
+      wound = 0;
+      helm.syrus = true;
+    }
+  };
+
   /** @param {KeyboardEvent} event */
   const typing = (event) =>
     event.ctrlKey ||
@@ -114,6 +134,7 @@ export function takeHelm(root, signal) {
       if (key === 'e' && !event.repeat) flip('engine');
       if (key === 'x' && !event.repeat) flip('anchor');
       if (key === 'r' && !event.repeat) pressFuse();
+      if (key === 't' && !event.repeat) pressSyrus();
       const order = KEYS[key];
       if (!order) return;
       helm[order] = true;
