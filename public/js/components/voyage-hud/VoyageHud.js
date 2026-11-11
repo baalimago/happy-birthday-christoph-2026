@@ -284,7 +284,11 @@ export class VoyageHud extends HTMLElement {
     const word = trimWord(trim);
     const irons = off < NO_GO && !engine;
     this.#say('[data-trim]', word);
-    this.#set('[data-trim-bar]', 'inlineSize', `${Math.round(Math.min(1, Math.max(0, trim)) * 100)}%`);
+    this.#set(
+      '[data-trim-bar]',
+      'inlineSize',
+      `${Math.round(Math.min(1, Math.max(0, trim)) * 100)}%`,
+    );
     this.#flag('.instruments', 'data-trimmed', trim > 0.8);
     this.#flag('.instruments', 'data-irons', irons);
     const warning = this.querySelector('[data-irons-note]');

@@ -22,6 +22,9 @@ const CAPS = '"IM Fell English SC", "IM Fell English", Georgia, serif';
 /** Where the rose and the scale lie, in world units: open water on the eastern side. */
 const ROSE = { x: 655, z: -520, radius: 118 };
 const SCALE = { x: 610, z: -905, length: 500 };
+/** The name of the sea and the warning at its far corner go in open water too. */
+const SEA = { x: -128, z: -508 };
+const DRAGONS = { x: -1020, z: 1090 };
 
 /**
  * Which side of a feature its name goes: n, s, e or w (default s), and a nudge in world units.
@@ -29,14 +32,12 @@ const SCALE = { x: 610, z: -905, length: 500 };
  */
 const PLACE = {
   mainland: { dx: -600, dz: -92 },
-  quickjs: { side: 'w' },
+  quickjs: { side: 'w', dz: -32 },
   unsafe: { side: 'e' },
-  panic: { side: 's' },
+  panic: { side: 'n' },
   plato: { side: 'n' },
   strand: { side: 'n' },
   veltliner: { side: 'w' },
-  trait: { side: 'n' },
-  crate: { side: 'n' },
   kaffee: { side: 'e' },
   graphql: { side: 'n' },
   lifetime: { side: 'n' },
@@ -232,12 +233,12 @@ function wash(field, size, perPixel) {
       const h = field[i];
       const o = i * 4;
       if (h <= 0) {
-        const shallow = smoothstep(-4.6, -0.2, h);
+        const shallow = smoothstep(-5, -0.4, h);
         if (shallow <= 0) continue;
         data[o] = 104;
         data[o + 1] = 146;
         data[o + 2] = 142;
-        data[o + 3] = shallow * shallow * 120;
+        data[o + 3] = Math.pow(shallow, 0.85) * 135;
         continue;
       }
       const east = (field[i + 1] - field[i - 1]) * inv;
@@ -505,7 +506,7 @@ export function drawChart(canvas, terrain, features) {
   // Woods: a small round tree wherever the ground is wooded.
   const crowns = new Path2D();
   const trunks = new Path2D();
-  const grove = 6.4 * s;
+  const grove = 7 * s;
   for (let gy = 2; gy < size - 2; gy += grove) {
     for (let gx = 2; gx < size - 2; gx += grove) {
       const px = gx + (roll() - 0.5) * grove * 0.9;
@@ -574,7 +575,7 @@ export function drawChart(canvas, terrain, features) {
           }
         }
         if (!peak) continue;
-        const arm = 2.6 * s;
+        const arm = 3.1 * s;
         rocks.moveTo(px - arm, py);
         rocks.lineTo(px + arm, py);
         rocks.moveTo(px, py - arm);
@@ -619,22 +620,48 @@ export function drawChart(canvas, terrain, features) {
   write(ctx, 'A Scale of five hundred Units', span / 2, -8, 3);
   ctx.restore();
 
-  // Names.
+  // Names. First the sea's own, spaced wide over open water, and a warning for the far corner.
   ctx.fillStyle = INK;
+  ctx.strokeStyle = INK;
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.globalAlpha = 0.72;
+  ctx.font = `italic 22px ${SERIF}`;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '3px';
+  ctx.fillText('The Philosopher\u2019s', mapX(SEA.x), mapY(SEA.z) - 13);
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '12px';
+  ctx.fillText('Sea', mapX(SEA.x) + 6, mapY(SEA.z) + 13);
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  ctx.font = `italic 16px ${SERIF}`;
+  ctx.fillText('Here be Dragons', mapX(DRAGONS.x), mapY(DRAGONS.z));
+  ctx.restore();
   for (const f of features) {
     const place = PLACE[f.id] ?? {};
     if (f.kind === 'mainland') {
+      // The name of the land goes on a label of its own, clear of the woods.
       ctx.save();
-      ctx.font = `25px ${CAPS}`;
+      ctx.font = `24px ${CAPS}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      if ('letterSpacing' in ctx) ctx.letterSpacing = '7px';
-      write(ctx, f.name.toUpperCase(), mapX(f.x + (place.dx ?? 0)), mapY(f.z + (place.dz ?? 0)), 0);
+      if ('letterSpacing' in ctx) ctx.letterSpacing = '6px';
+      const title = f.name.toUpperCase();
+      const x = mapX(f.x + (place.dx ?? 0));
+      const y = mapY(f.z + (place.dz ?? 0));
+      const wide = ctx.measureText(title).width + 34;
+      ctx.fillStyle = '#eadbb2';
+      ctx.fillRect(x - wide / 2, y - 19, wide, 38);
+      ctx.lineWidth = 1.1;
+      ctx.strokeRect(x - wide / 2, y - 19, wide, 38);
+      ctx.lineWidth = 0.6;
+      ctx.strokeRect(x - wide / 2 + 3.5, y - 15.5, wide - 7, 31);
+      ctx.fillStyle = INK;
+      ctx.fillText(title, x + 3, y + 1);
       ctx.restore();
       continue;
     }
     const reef = f.kind === 'reef';
-    const px = reef ? 18 : f.radius >= 90 ? 23 : 21;
+    const px = reef ? 19 : f.radius >= 90 ? 25 : 22;
     const reachX = f.radius * (f.kind === 'strand' ? 2.7 : reef ? 1.3 : 1.2) * unit;
     const reachZ = f.radius * (reef ? 1.3 : 1.2) * unit;
     const text = lines(f.name);

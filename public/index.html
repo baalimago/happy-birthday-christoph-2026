@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-LMKQWptfothwMnQJtsmOV+L7QH9D7H8M8H4iMnkCpto='; style-src 'self'; object-src 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-bv+rVrXeqykz9Lrb+6lDR3gIJdHbwtIgP0n4cTblbZ0='; style-src 'self'; object-src 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
 <link rel="stylesheet" href="/css/main.css">
 <link rel="stylesheet" href="/css/reset.css">
 <link rel="stylesheet" href="/css/tokens.css">
@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="/js/components/voyage-sea/voyage-sea.css">
 <link rel="stylesheet" href="/js/components/voyage-hud/voyage-hud.css">
 <link rel="stylesheet" href="/js/components/voyage-chart/voyage-chart.css">
+<link rel="stylesheet" href="/js/components/voyage-reading/voyage-reading.css">
 <link rel="stylesheet" href="/js/components/voyage-log/voyage-log.css">
 <script type="importmap">
 {
@@ -24,19 +25,28 @@
     "#game/": "/js/game/",
     "#render/": "/js/render/",
     "#input/": "/js/input/",
-    "#gift/": "/js/gift/"
+    "#gift/": "/js/gift/",
+    "#audio/": "/js/audio/"
   }
 }
 </script>
 <script type="module" src="/js/main.js"></script>
+<link rel="modulepreload" href="/js/components/voyage-chart/VoyageChart.js">
+<link rel="modulepreload" href="/js/components/voyage-chart/draw.js">
+<link rel="modulepreload" href="/js/components/voyage-chart/voyage-chart.js">
 <link rel="modulepreload" href="/js/components/voyage-hud/VoyageHud.js">
 <link rel="modulepreload" href="/js/components/voyage-hud/voyage-hud.js">
 <link rel="modulepreload" href="/js/components/voyage-log/VoyageLog.js">
 <link rel="modulepreload" href="/js/components/voyage-log/voyage-log.js">
+<link rel="modulepreload" href="/js/components/voyage-reading/VoyageReading.js">
+<link rel="modulepreload" href="/js/components/voyage-reading/voyage-reading.js">
 <link rel="modulepreload" href="/js/components/voyage-sea/VoyageSea.js">
 <link rel="modulepreload" href="/js/components/voyage-sea/voyage-sea.js">
+<link rel="modulepreload" href="/js/game/chart-data.js">
 <link rel="modulepreload" href="/js/game/objectives.js">
-<link rel="modulepreload" href="/js/game/world.js">
+<link rel="modulepreload" href="/js/game/readings.js">
+<link rel="modulepreload" href="/js/game/sailing.js">
+<link rel="modulepreload" href="/js/game/terrain.js">
 <link rel="modulepreload" href="/js/gift/birthday.js">
 <link rel="modulepreload" href="/js/gift/calendar.js">
 <link rel="modulepreload" href="/js/gift/paper.js">
@@ -86,6 +96,11 @@
       <p>There is a chart (press M), but nobody has marked anything on it. So sail: steer with left and right, and let the sails out or haul them in with up and down until they match the marker on the wind dial. Or start the engine with E. Keep off the rocks; the hull does not forgive.</p>
       <p class="ashore">No WebGL aboard? Then this is the logbook, and it has everything the ports would have paid out.</p>
       <button type="button" data-close>Weigh anchor</button>
+    </section>
+    <section class="card splash" data-card="splash">
+      <h2>Happy Birthday from team Wasmer!</h2>
+      <p class="lede">It may have cost half a rainforest of Fable 5.2, but you're worth that and more. We couldn't bring you to a boat, so we figured we'd bring the boat to you. Please enjoy a nice relaxing philosophical sailing journey!</p>
+      <button type="button" data-next="intro">Come aboard</button>
     </section>
     <ol class="ports">
       <li><article class="card port" id="port-wittgenstein" data-card="wittgenstein" data-port data-view="gold">
@@ -202,11 +217,12 @@
     <div class="orders">
       <h2>Captain's orders</h2>
       <ol class="objectives">
-        <li data-goal="sail">Weigh anchor</li>
-        <li data-goal="port:wittgenstein">Find your home port</li>
-        <li data-goal="ports:3">Find three ports</li>
+        <li data-goal="sail">Leave the harbour</li>
+        <li data-goal="port:wittgenstein">Find the light on the home headland</li>
+        <li data-goal="ports:3">Find three places</li>
+        <li data-goal="port:plato">Find the cave in Schattenfels</li>
         <li data-goal="views:4">Collect all four views</li>
-        <li data-goal="ports:6">Find every port</li>
+        <li data-goal="ports:7">Find all seven</li>
       </ol>
       <div class="views" role="group" aria-label="View">
         <button type="button" data-view="poster" aria-pressed="true">Poster</button>
@@ -277,7 +293,7 @@
   <voyage-chart>
     <button type="button" data-chart-toggle aria-haspopup="dialog" aria-expanded="false" aria-keyshortcuts="M">
       <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" focusable="false"><path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20Z"/><path d="M9 4v13.5M15 6.5V20"/></svg>
-      <span>Chart</span>
+      <span>Map</span>
       <kbd aria-hidden="true">M</kbd>
     </button>
     <dialog aria-labelledby="chart-title">
@@ -315,6 +331,37 @@
       </div>
     </dialog>
   </voyage-chart>
+  <div class="aids">
+    <button type="button" class="sound" data-sound aria-pressed="true" aria-keyshortcuts="Q" hidden>
+      <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5Z"/><path class="waves" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="mute" d="m15.5 9.5 5 5m0-5-5 5"/></svg>
+      <span>Sound</span>
+    </button>
+    <voyage-reading>
+      <button type="button" data-reading-toggle aria-expanded="false" aria-controls="reading" aria-keyshortcuts="R">
+        <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M12 6.5C10 5 7 4.5 4 5v13c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5Zm0 0v13"/></svg>
+        <span>Read</span>
+      </button>
+      <section id="reading" data-reading-panel aria-labelledby="reading-title" hidden>
+        <header>
+          <p class="eyebrow">For the passage</p>
+          <h2 id="reading-title" data-reading-title>A text for the passage</h2>
+          <p class="by" data-reading-by></p>
+        </header>
+        <div class="text" data-reading-text tabindex="0" role="group" aria-labelledby="reading-title"></div>
+        <p class="note" data-reading-note hidden></p>
+        <footer>
+          <button type="button" data-reading-step="-1" aria-label="Previous reading">
+            <svg aria-hidden="true" viewBox="0 0 16 16" focusable="false"><path d="m10 3-5 5 5 5"/></svg>
+          </button>
+          <span data-reading-count></span>
+          <button type="button" data-reading-step="1" aria-label="Next reading">
+            <svg aria-hidden="true" viewBox="0 0 16 16" focusable="false"><path d="m6 3 5 5-5 5"/></svg>
+          </button>
+          <button type="button" data-reading-close>Put it away</button>
+        </footer>
+      </section>
+    </voyage-reading>
+  </div>
   <div class="helm" role="group" aria-label="Helm">
     <button type="button" data-helm="left" aria-label="Turn to port">
       <svg aria-hidden="true" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v6"/></svg>

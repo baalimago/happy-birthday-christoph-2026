@@ -225,4 +225,63 @@
       }
     }
   }
+
+  /* The greeting: the title cartouche of a chart, in the middle of the sea. */
+  voyage-log {
+    & .splash h2 {
+      text-wrap: balance;
+    }
+
+    & .splash h2::after {
+      content: '';
+      display: block;
+      inline-size: min(12rem, 60%);
+      block-size: 2px;
+      margin: 0.9rem auto 0;
+      background: var(--card-accent);
+    }
+
+    & .splash .lede {
+      font-style: italic;
+    }
+
+    voyage-sea[live] & .card.splash {
+      inset: 50% auto auto 50%;
+      inline-size: min(100vw - 2rem, 40rem);
+      max-block-size: calc(100dvh - 2rem);
+      padding: clamp(1.5rem, 5vw, 3rem);
+      translate: -50% -50%;
+      text-align: center;
+      border: 2px solid var(--card-line);
+      outline: 1px solid var(--card-accent);
+      outline-offset: -0.6rem;
+      background:
+        radial-gradient(circle at 30% 20%, rgb(255 255 255 / 0.25), transparent 60%), var(--card-bg);
+      box-shadow: 0 1rem 4rem rgb(0 0 0 / 0.45);
+    }
+
+    voyage-sea[live] & .card.splash h2 {
+      font-size: clamp(1.75rem, 6vw, 3rem);
+      line-height: 1.1;
+    }
+
+    voyage-sea[live] & .card.splash .lede {
+      max-inline-size: 34rem;
+      margin-inline: auto;
+      font-size: clamp(1.0625rem, 2.6vw, 1.3125rem);
+    }
+
+    voyage-sea[live] & .card.splash > button {
+      position: static;
+      inline-size: auto;
+      margin: 1.25rem auto 0;
+      padding-inline: 2rem;
+      border: 1px solid var(--card-accent);
+      background: transparent;
+      color: var(--card-accent);
+      box-shadow: none;
+      font-family: var(--font-display);
+      letter-spacing: 0.08em;
+    }
+  }
 }

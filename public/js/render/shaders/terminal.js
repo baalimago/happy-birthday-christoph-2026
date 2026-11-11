@@ -38,7 +38,7 @@ vec3 shade_terminal(float id, vec3 p, vec3 n, vec3 rd, vec3 q, float t, vec2 fc,
       if (lm.x > 0.0) {
         // firs: green triangles, an outline and two rungs
         float rung = lineAt(lm.x*5.0, fwidth(lm.x*5.0));
-        c = T_BG + T_GREEN*(0.10 + 0.8*max(rung, smoothstep(0.45, 0.8, rim)));
+        c = T_BG + T_GREEN*mix(0.10 + 0.8*max(rung, smoothstep(0.45, 0.8, rim)), 0.2 + 0.5*cl, lodAt(t));
       }
       if (lm.y > 0.5) c = mix(T_AMBER, vec3(1.0), step(0.5, fract(lm.w)));
     }
@@ -60,7 +60,7 @@ vec3 shade_terminal(float id, vec3 p, vec3 n, vec3 rd, vec3 q, float t, vec2 fc,
     c = id < 3.5 ? vec3(0.37,0.65,0.72) : id < 4.5 ? T_GREEN : id < 5.5 ? vec3(0.9) : T_AMBER;
     float l = lineAt(q.y*6.0, fwidth(q.y*6.0));
     if (id > 3.5 && (id < 4.5 || id > 5.5)) {
-      float v = q.z*4.0 + q.y*2.0;
+      float v = (id < 4.5 ? sailLocal(q).z : q.z)*4.0 + q.y*2.0;
       l = max(l, lineAt(v, fwidth(v)));
     }
     c = T_BG + c*(0.10 + l*0.85 + rim*0.5);

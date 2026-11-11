@@ -61,7 +61,7 @@ export class VoyageLog extends HTMLElement {
     }
     this.#atSea = true;
     this.#near = passage.state.near;
-    if (!voyage.state.sailed) this.#open('intro');
+    if (!voyage.state.sailed) this.#open('splash');
     else if (this.#near) this.#open(this.#near);
     else this.#offerFinale();
   }
@@ -78,7 +78,10 @@ export class VoyageLog extends HTMLElement {
   /** @param {Event} event */
   #onClick(event) {
     if (!this.#atSea || !(event.target instanceof Element)) return;
-    if (event.target.closest('[data-reset]')) {
+    const next = event.target.closest('[data-next]');
+    if (next) {
+      this.#open(next.getAttribute('data-next') ?? 'intro');
+    } else if (event.target.closest('[data-reset]')) {
       voyage.reset();
       this.#close();
     } else if (event.target.closest('[data-close]')) {
@@ -152,6 +155,11 @@ export class VoyageLog extends HTMLElement {
   #close() {
     const card = this.#openCard();
     if (!card) return;
+    // Putting the greeting away leads to the sailing orders, not straight out to sea.
+    if (card.dataset.card === 'splash') {
+      this.#open('intro');
+      return;
+    }
     this.#releaseFocus(card);
     card.removeAttribute('data-open');
     this.#announce('');

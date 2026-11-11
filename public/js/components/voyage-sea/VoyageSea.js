@@ -277,10 +277,10 @@ export class VoyageSea extends HTMLElement {
 
     const hoveTo = passage.state.reading || passage.state.chart;
     const wind = windAt(this.#watch);
-    if (!hoveTo) {
-      this.#watch += dt;
-      this.#sail(dt, wind, terrain);
-    }
+    // Hove to, the clock stops but the instruments still read.
+    const step = hoveTo ? 0 : dt;
+    this.#watch += step;
+    this.#sail(step, wind, terrain, dt);
     const boat = this.#boat;
 
     // Let the camera drift back to rest once the captain lets go of it, and close up in the cave.
@@ -329,8 +329,9 @@ export class VoyageSea extends HTMLElement {
    * @param {number} dt
    * @param {import('#game/sailing.js').Wind} wind
    * @param {Terrain} terrain
+   * @param {number} real seconds of real time, which the instruments keep even when hove to
    */
-  #sail(dt, wind, terrain) {
+  #sail(dt, wind, terrain, real) {
     const boat = this.#boat;
     const outcome = sail(boat, this.#helm, wind, dt, terrain);
     if (Math.abs(boat.speed) > 0.5) voyage.setSail();
@@ -352,7 +353,7 @@ export class VoyageSea extends HTMLElement {
       this.#sinceMoor = 0;
       this.#moor();
     }
-    this.#sinceLog += dt;
+    this.#sinceLog += real;
     if (this.#sinceLog >= LOG_EVERY) {
       this.#sinceLog = 0;
       passage.report({

@@ -17,7 +17,7 @@ uniform float uT, uYaw, uPitch, uDist, uEnd, uSpeed, uLean, uBoom;
 uniform int uMode;
 uniform sampler2D uLand;                 // r: height above the sea, g: forest 0..1
 uniform sampler2D uTop;                  // highest ground in a 25 unit cell (r), a 100 unit cell (g)
-uniform float uExtent, uMaxLand;
+uniform float uExtent, uMaxLand, uCell;   // uCell: side of a cell of uTop
 uniform vec4 uPort[${PORTS}];            // x, z, base, kind (0 lighthouse, 1 cave, -1 none)
 uniform float uFound[${PORTS}];
 uniform vec4 uCave;                      // tunnel from a (xy) to the chamber b (zw), world x, z
@@ -31,9 +31,11 @@ uniform float uWindSpeed;
 uniform vec3 uWave;                      // phases of the wave trains under the boat
 uniform vec2 uPennant;                   // the way the pennant streams, in the boat's frame
 
+float gHit = 0.0;                // what this pixel shows (an id, 0 for sky), for the post passes
+
 const float FAR = 1800.0;       // nothing is drawn beyond this but the flat sea
+const float CUTAWAY = 45.0;     // a camera inside rock sees out through this much of it
 const float LIGHT_TOP = 8.6;    // lighthouse gallery above its base; the lamp room sits on it
-const float CELL = 25.0;        // side of a cell of uTop
 
 float hash(vec2 p){
   ivec2 i = ivec2(floor(p));
@@ -132,11 +134,11 @@ vec2 caveLight(vec3 p, vec3 n){
   float into = dot(p.xz - uCave.xy, e) - uCaveShape.w;
   vec3 l = uCaveLamp - p;
   float glow = (0.35 + 0.65*clamp(dot(n, normalize(l)), 0.0, 1.0))/(1.0 + dot(l, l)/110.0);
-  return vec2(exp(-max(into, 0.0)/9.0), glow);
+  return vec2(exp(-max(into, 0.0)/16.0), glow);
 }
 // free space is positive (a safe step), solid rock negative (a safe step back out)
 float field(vec3 p, float lod){
-  float dh = (p.y - landH(p.xz, lod))*0.32;
+  float dh = (p.y - landH(p.xz, lod))*mix(0.32, 0.42, lod);   // firs are steep, far hills are not
   if (dh > 0.0 && p.y > uCaveShape.z) return dh;
   float c = caveD(p);
   if (dh > 0.0) return max(dh, -c);
@@ -161,14 +163,14 @@ float marchLand(vec3 o, vec3 d, float tMax, out float kind){
     if (!inside) {
       if (d.y > 0.0 && p.y > uMaxLand) return -1.0;
       vec2 top = textureLod(uTop, p.xz/uExtent + 0.5, 0.0).rg;
-      float cell = p.y > top.g ? 4.0*CELL : p.y > top.r ? CELL : 0.0;
+      float cell = p.y > top.g ? 4.0*uCell : p.y > top.r ? uCell : 0.0;
       if (cell > 0.0) {
         // nothing in this cell reaches the ray: on to where it leaves, or dips under the top
         vec2 w = p.xz + 0.5*uExtent;
         vec2 edge = (floor(w/cell) + step(0.0, dx))*cell;
         vec2 tt = (edge - w)/dx;
         float dt = min(tt.x, tt.y);
-        if (d.y < 0.0) dt = min(dt, ((cell > CELL ? top.g : top.r) - p.y)/d.y);
+        if (d.y < 0.0) dt = min(dt, ((cell > uCell ? top.g : top.r) - p.y)/d.y);
         prev = t;
         t += dt + 0.02;
         continue;
@@ -176,7 +178,11 @@ float marchLand(vec3 o, vec3 d, float tMax, out float kind){
     }
     float f = field(p, lodAt(t));
     if (inside) {
-      if (f < 0.0) { t += max(-f, 0.25); continue; }
+      if (f < 0.0) {
+        if (t > CUTAWAY) break;
+        t += max(-f, 0.25 + 0.06*t);
+        continue;
+      }
       inside = false;
     } else if (f < 0.0) {
       float a = prev, b = t;
@@ -189,7 +195,7 @@ float marchLand(vec3 o, vec3 d, float tMax, out float kind){
       return b;
     }
     prev = t;
-    t += max(f, 0.01 + 0.004*t);
+    t += max(f, 0.03 + 0.006*t);
   }
   if (inside) { kind = 8.0; return 0.02; }   // the camera is in rock and looks deeper into it
   return -1.0;
@@ -323,7 +329,7 @@ float sdTri(vec2 p, vec2 p0, vec2 p1, vec2 p2){
 vec3 boatLocal(vec3 p){
   float by = sea(uPos)*0.7 + 0.03;
   vec3 q = p - vec3(0.0, by, 0.0);
-  float a = 0.07*sin(uT*1.3) + uLean, c = cos(a), s = sin(a);
+  float a = 0.07*sin(uT*1.3) - uLean, c = cos(a), s = sin(a);   // uLean > 0 heels to starboard
   q.xy = mat2(c, -s, s, c)*q.xy;
   a = 0.05*sin(uT*0.9 + 1.0); c = cos(a); s = sin(a);
   q.yz = mat2(c, -s, s, c)*q.yz;
@@ -352,7 +358,8 @@ vec2 boat(vec3 p){
   mast = min(mast, boom);
   // the jib is hinged on the forestay and swings a share of the boom's angle
   float off = max(dot(q.zy - vec2(1.32, 0.42), vec2(-0.832, -0.555)), 0.0);
-  float jx = q.x - tan(clamp(uBoom, -1.2, 1.2)*0.7)*off - belly*0.6;
+  float swing = clamp(uBoom, -1.2, 1.2)*0.7;
+  float jx = (q.x - tan(swing)*off)*cos(swing) - belly*0.6;
   float s2 = max(sdTri(q.zy, vec2(0.24,0.42), vec2(0.2,2.1), vec2(1.32,0.42)), abs(jx) - 0.02);
   // the pennant streams downwind from the masthead
   float along = dot(m.xz, uPennant), across = dot(m.xz, vec2(uPennant.y, -uPennant.x));
@@ -415,7 +422,8 @@ vec4 seaMarks(vec3 p, float t){
   return m;
 }
 // what the ground carries: x = wood (0 bare, else 0.5 at a tree's foot .. 1 at its top),
-// y = lava (0 or 1), z = beach (0 or 1), w = a coordinate that runs down the lava as it flows
+// y = lava (0 or 1), z = low ground (1 beach, 2 a rock awash, else 0),
+// w = a coordinate that runs down the lava as it flows
 vec4 landMarks(vec3 p, float t){
   vec4 m = vec4(0.0);
   vec2 s = landAt(p.xz);
@@ -424,7 +432,12 @@ vec4 landMarks(vec3 p, float t){
     float w = wood(p.xz, s.g, lod);
     if (w > mix(0.12, 0.7, lod)) m.x = 0.5 + 0.5*clamp(w/4.1, 0.0, 1.0);
   }
-  if (s.r < 1.25) m.z = 1.0;
+  if (s.r < 1.25) {
+    // low ground with nothing higher behind it is a rock awash, not a beach
+    float back = max(max(landAt(p.xz + vec2(14.0, 0.0)).r, landAt(p.xz - vec2(14.0, 0.0)).r),
+                     max(landAt(p.xz + vec2(0.0, 14.0)).r, landAt(p.xz - vec2(0.0, 14.0)).r));
+    m.z = back > 1.0 ? 1.0 : 2.0;
+  }
   vec2 v = p.xz - uVolcano.xy;
   float r = length(v);
   if (r < uVolcanoR*0.62) {

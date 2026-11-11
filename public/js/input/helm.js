@@ -85,7 +85,8 @@ export function takeHelm(root, signal) {
     return button ? { button, order: button.getAttribute('data-helm') ?? '' } : null;
   };
   /** @param {string} order @returns {order is Order} */
-  const held = (order) => order === 'left' || order === 'right' || order === 'out' || order === 'in';
+  const held = (order) =>
+    order === 'left' || order === 'right' || order === 'out' || order === 'in';
 
   root.addEventListener(
     'pointerdown',

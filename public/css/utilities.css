@@ -15,4 +15,9 @@
   voyage-sea:not([live]) .helm {
     display: none;
   }
+
+  /* The greeting has the whole screen to itself. */
+  voyage-sea:has(.splash[data-open]) :is(voyage-hud, voyage-chart, .aids, .helm) {
+    display: none;
+  }
 }

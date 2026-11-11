@@ -13,7 +13,8 @@
 //
 // What a hit is (id): 1 sea, 2 land, 3 hull, 4 mainsail, 5 mast, 6 jib, 7 pennant, 8 the wall of
 // the sea cave, 9 the volcano's plume, 10 + i the lighthouse (or the cave lights) of port i.
-// scene.js has the marks they carry: seaMarks, landMarks, lightMarks, caveLight, haze.
+// scene.js has the marks they carry: seaMarks, landMarks, lightMarks, caveLight, haze; gHit is
+// the id of what the pixel shows (0 for sky), for post_<id>.
 
 import { VIEWS } from '../views.js';
 import { PORTS, SCENE } from './scene.js';
@@ -30,7 +31,7 @@ export { PORTS };
 const SHADERS = [poster, terminal, gold, chart];
 
 /** The march over the land never takes more steps than this (cells skipped and steps taken). */
-const STEPS = 150;
+const STEPS = 300;
 
 /**
  * An if/else chain on uMode calling one function per view; the first view is the fallback.
@@ -104,6 +105,7 @@ void main(){
   bool dot_ = lit != id;
   id = lit;
 
+  gHit = id;
   vec3 col;
   if (id > 0.5) {
     vec3 p = dot_ ? at : ro + rd*t;

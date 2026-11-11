@@ -50,10 +50,13 @@ vec3 shade_gold(float id, vec3 p, vec3 n, vec3 rd, vec3 q, float t, vec2 fc, flo
   } else if (id < 2.5) {
     vec4 lm = landMarks(p, t);
     float side = tile_gold(t);
-    c = goldMosaic(vec2(p.x + p.z*0.37, p.y*1.6 + p.z*0.9)/side, df) + G_GOLD*sp*0.6;
+    // tiles lie along the ground, and stand in courses on a cliff
+    vec2 lay = n.y > 0.6 ? vec2(p.x + p.z*0.37, p.y*1.6 + p.z*0.9)
+                         : vec2(abs(n.x) > abs(n.z) ? p.z : p.x, p.y*1.3);
+    c = goldMosaic(lay/side, df) + G_GOLD*sp*0.6;
     if (lm.x > 0.0) {
       // woods: dark green tiles, a leaf of gold at the top of each fir
-      vec2 u = vec2(p.x + p.z*0.37, p.y*1.6 + p.z*0.9)*1.6/side;
+      vec2 u = lay*1.6/side;
       vec2 f = abs(fract(u) - 0.5);
       c = mix(G_GREEN, G_BRONZE, 0.25*hash(floor(u)))*(0.6 + 0.8*lit);
       if (max(f.x, f.y) > 0.42) c = G_BG;
@@ -69,12 +72,12 @@ vec3 shade_gold(float id, vec3 p, vec3 n, vec3 rd, vec3 q, float t, vec2 fc, flo
     vec2 u = vec2(atan(n.x, n.z)*5.0, n.y*6.0) + q.x*40.0;
     vec2 f = abs(fract(u) - 0.5);
     c = G_BG*1.6;
-    if (max(f.x, f.y) < 0.33) c = (q.x < 0.16 ? G_GOLD : G_IVORY)*(0.3 + 0.5*lit)*(0.5 + 0.5*hash(floor(u)));
+    if (max(f.x, f.y) < 0.33) c = (q.x < 0.16 ? G_GOLD : G_IVORY)*(0.35 + 0.65*lit)*(0.5 + 0.5*hash(floor(u)));
   } else if (id > 7.5) {
     vec2 cl = caveLight(p, n);
     vec2 u = vec2(p.x + p.z, p.y*1.4)*0.9;
     vec2 f = abs(fract(u) - 0.5); float h = hash(floor(u));
-    c = (h < 0.5 ? G_BRONZE : h < 0.8 ? G_GOLD : G_IVORY)*(0.04 + 0.25*cl.x + 2.2*cl.y);
+    c = (h < 0.5 ? G_BRONZE : h < 0.8 ? G_GOLD : G_IVORY)*min(0.04 + 0.25*cl.x + 1.15*cl.y, 1.0);
     if (max(f.x, f.y) > 0.44) c = G_BG*0.5;
   } else if (id < 3.5) {
     c = G_GOLD*(0.55 + 0.45*lit);

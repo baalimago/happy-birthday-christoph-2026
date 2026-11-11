@@ -31,8 +31,8 @@ vec3 shade_poster(float id, vec3 p, vec3 n, vec3 rd, vec3 q, float t, vec2 fc, f
       // in the cave: black water that catches the lamp and the daylight at the mouth
       vec2 cl = caveLight(p, n);
       vec3 l = normalize(uCaveLamp - p);
-      vec3 c = cl.x > 0.45 ? TEAL : cl.x > 0.12 ? SLATE : INK;
-      if (dot(n.xz, l.xz) > 0.09) c = cl.y > 0.2 ? ORANGE : cl.y > 0.05 ? RUST : c;
+      vec3 c = cl.x > 0.6 ? TEAL : cl.x > 0.2 ? SLATE*1.3 : cl.y > 0.2 ? RUST*0.3 : cl.x > 0.06 ? SLATE*0.8 : INK;
+      if (dot(n.xz, l.xz) > 0.05) c = cl.y > 0.3 ? ORANGE : cl.y > 0.1 ? RUST : cl.y > 0.03 ? RUST*0.5 : c;
       if (mk.z > -0.07) c = cl.y > 0.2 ? AMBER : cl.x > 0.3 ? CREAM : SMOKE;
       if (mk.y > 0.5) c = cl.x + cl.y > 0.3 ? CREAM : SMOKE;
       return c;
@@ -49,7 +49,10 @@ vec3 shade_poster(float id, vec3 p, vec3 n, vec3 rd, vec3 q, float t, vec2 fc, f
   if (id < 2.5) {
     vec4 lm = landMarks(p, t);
     vec3 c = df < 0.05 ? NAVY : df < 0.5 ? RUST : ORANGE;
-    if (lm.z > 0.5 && n.y > 0.93) c = df < 0.0 ? AMBER : SUNC;
+    // cliffs show their strata
+    if (n.y < 0.62 && df > 0.05 && fract(p.y*0.33 + 0.7*noise(p.xz*0.12)) < 0.22) c = df < 0.5 ? NAVY : RUST;
+    if (lm.z > 1.5) c = df < 0.3 ? INK : RUST;
+    else if (lm.z > 0.5 && n.y > 0.93) c = df < 0.0 ? AMBER : SUNC;
     if (lm.x > 0.0) c = df < 0.12 ? PINE : (lm.x > 0.86 ? YELLOW : LEAF);
     if (lm.y > 0.5) { float b = fract(lm.w); c = b < 0.34 ? YELLOW : b < 0.67 ? ORANGE : CORAL; }
     return hazed_poster(c, t);
@@ -69,13 +72,16 @@ vec3 shade_poster(float id, vec3 p, vec3 n, vec3 rd, vec3 q, float t, vec2 fc, f
   if (id > 7.5) {
     vec2 cl = caveLight(p, n);
     float strata = step(0.5, fract(p.y*0.4 + 0.6*noise(p.xz*0.3)));
-    vec3 c = strata > 0.5 ? INK : INK*0.6;
-    if (cl.x > 0.25) c = strata > 0.5 ? SLATE : INK;
-    if (cl.y > 0.035) c = strata > 0.5 ? RUST*0.42 : RUST*0.3;
-    if (cl.y > 0.1) c = strata > 0.5 ? RUST : RUST*0.75;
-    if (cl.y > 0.3) c = ORANGE;
-    if (cl.y > 0.6) c = AMBER;
-    return c;
+    vec3 c = INK*0.6;
+    if (cl.x > 0.06) c = INK*1.5;
+    if (cl.x > 0.2) c = SLATE;
+    if (cl.x > 0.5) c = SLATE*1.45;
+    if (cl.y > 0.035) c = RUST*0.36;
+    if (cl.y > 0.1) c = RUST*0.62;
+    if (cl.y > 0.25) c = RUST;
+    if (cl.y > 0.5) c = ORANGE;
+    if (cl.y > 0.78) c = AMBER;
+    return strata > 0.5 ? c : mix(c, INK, 0.3);
   }
   if (id < 3.5) return (q.y > 0.13 && q.y < 0.2) ? YELLOW : NAVY;
   if (id < 4.5) return (q.y > 1.05 && q.y < 1.35) ? CORAL : CREAM;

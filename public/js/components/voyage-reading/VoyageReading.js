@@ -14,8 +14,6 @@ export class VoyageReading extends HTMLElement {
   /** @type {AbortController | undefined} */
   #connected;
   #index = 0;
-  /** The captain has leafed to a reading himself: stop following the voyage until the next port. */
-  #leafed = false;
   #found = -1;
 
   connectedCallback() {
@@ -29,7 +27,6 @@ export class VoyageReading extends HTMLElement {
         else if (target?.closest('[data-reading-close]')) this.#open(false);
         const step = target?.closest('[data-reading-step]');
         if (step) {
-          this.#leafed = true;
           this.#show(this.#index + Number(step.getAttribute('data-reading-step')));
         }
       },
@@ -69,7 +66,6 @@ export class VoyageReading extends HTMLElement {
     const { found } = voyage.state;
     if (found.length === this.#found) return;
     this.#found = found.length;
-    this.#leafed = false;
     const next = READINGS.findIndex((reading) => reading.leg && !found.includes(reading.leg));
     const spare = READINGS.findIndex((reading) => !reading.leg);
     this.#show(next >= 0 ? next : Math.max(0, spare));

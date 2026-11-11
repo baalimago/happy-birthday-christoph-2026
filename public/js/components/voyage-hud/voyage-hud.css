@@ -160,6 +160,7 @@
       display: grid;
       justify-items: center;
       gap: 0.25rem;
+      font-size: 0.8125rem;
       text-align: center;
     }
 
@@ -337,6 +338,7 @@
     }
 
     & .low svg {
+      display: inline-block;
       inline-size: 0.75rem;
       block-size: 0.75rem;
       vertical-align: -0.05rem;

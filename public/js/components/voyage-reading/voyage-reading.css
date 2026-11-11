@@ -1,0 +1,138 @@
+@layer components {
+  voyage-reading {
+    display: block;
+
+    /* A new text is waiting. */
+    &[fresh] > button {
+      border-color: var(--hud-accent);
+      color: var(--hud-accent);
+    }
+
+    &[open] > button {
+      border-color: var(--hud-accent);
+    }
+
+    & [data-reading-panel] {
+      position: fixed;
+      z-index: 1;
+      inset-block: 15.5rem calc(0.75rem + env(safe-area-inset-bottom));
+      inset-inline-start: max(0.75rem, env(safe-area-inset-left));
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      inline-size: 21rem;
+      min-block-size: 9rem;
+      padding: 0.85rem 1rem 0.75rem;
+      border: 1px solid var(--hud-line);
+      border-radius: 0.5rem;
+      background: color-mix(in srgb, var(--hud-bg) 94%, transparent);
+      color: var(--hud-fg);
+      font: 1rem / 1.55 var(--font-text);
+
+      &[hidden] {
+        display: none;
+      }
+
+      /* A card has the floor. */
+      voyage-sea:has(.card[data-open]) & {
+        display: none;
+      }
+
+      /* The helm runs along the bottom here. */
+      @media (width < 900px) {
+        inset-block-end: calc(var(--helm-reserve) + 0.5rem + env(safe-area-inset-bottom));
+      }
+
+      @media (width < 48rem) {
+        inset-block-start: 13.5rem;
+        inset-inline: 0.5rem;
+        inline-size: auto;
+      }
+
+      @media (height < 30rem) {
+        inset-block-start: 0.5rem;
+        inset-inline: 21rem 0.5rem;
+        inline-size: auto;
+      }
+    }
+
+    & .eyebrow {
+      margin: 0;
+      color: var(--hud-accent);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    & h2 {
+      margin: 0;
+      font: 1.125rem / 1.2 var(--font-display);
+      letter-spacing: 0.02em;
+    }
+
+    & .by,
+    & .note {
+      margin: 0;
+      font-size: 0.8125rem;
+      line-height: 1.35;
+      opacity: 0.85;
+    }
+
+    & .text {
+      flex: 1;
+      min-block-size: 0;
+      padding-inline-end: 0.5rem;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      border-block: 1px solid var(--hud-line);
+
+      & p {
+        margin-block: 0.6rem;
+        max-inline-size: 60ch;
+        text-wrap: pretty;
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+    }
+
+    & footer {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8125rem;
+
+      & button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-inline-size: 2.75rem;
+        min-block-size: 2.75rem;
+        padding: 0.25rem 0.7rem;
+        border: 1px solid var(--hud-line);
+        border-radius: 0.5rem;
+        background: transparent;
+        color: inherit;
+        font: 700 0.8125rem / 1 var(--font-text);
+        cursor: pointer;
+      }
+
+      & [data-reading-close] {
+        margin-inline-start: auto;
+      }
+
+      & svg {
+        inline-size: 1rem;
+        block-size: 1rem;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+    }
+  }
+}

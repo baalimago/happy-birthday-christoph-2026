@@ -48,7 +48,7 @@ vec3 shade_chart(float id, vec3 p, vec3 n, vec3 rd, vec3 q, float t, vec2 fc, fl
     if (mk.w > 0.5) {
       // in the cave: dark water, cross-hatched, thinning where the lamp reaches
       vec2 cl = caveLight(p, n);
-      ink = max(ink, inkFromLum(0.1 + cl.x*0.5 + cl.y*1.6, fc, k));
+      ink = max(ink, inkFromLum(0.1 + cl.x*0.5 + cl.y*0.9, fc, k));
       if (mk.z > -0.07) ink = 1.0;
     } else {
       // shoals and the water by the shore are stippled
@@ -80,8 +80,9 @@ vec3 shade_chart(float id, vec3 p, vec3 n, vec3 rd, vec3 q, float t, vec2 fc, fl
     if (q.x < 0.14) tint = C_RED;
   } else if (id > 7.5) {
     vec2 cl = caveLight(p, n);
-    ink = max(inkFromLum(0.05 + cl.x*0.45 + cl.y*2.0, fc, k), 0.25);
-    if (cl.y > 0.3) tint = C_RED;
+    ink = inkFromLum(0.05 + cl.x*0.4 + cl.y*1.3, fc, k);
+    ink = max(ink, lineAt(p.y*0.6, fwidth(p.y*0.6))*0.8);
+    if (cl.y > 0.62) tint = C_RED;
     if (t < 0.05) ink = 1.0;
   } else if (id < 3.5) {
     ink = inkFromLum(0.2 + df*0.3, fc, k);
@@ -103,7 +104,7 @@ vec3 shade_chart(float id, vec3 p, vec3 n, vec3 rd, vec3 q, float t, vec2 fc, fl
 vec3 post_chart(vec3 col, vec3 rd, vec2 fc, float k){
   col *= 0.95 + 0.07*noise(fc*0.35/k);
   col *= 1.0 - 0.35*pow(length((fc/uRes - 0.5)*vec2(1.1, 1.3)), 2.5);
-  if (abs(rd.y) < 0.0016) col = mix(col, C_INK, 0.8);
+  if (abs(rd.y) < 0.0016 && gHit < 1.5) col = mix(col, C_INK, 0.8);   // the horizon, on sea and sky
   return col;
 }
 `,

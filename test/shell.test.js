@@ -105,7 +105,9 @@ const BOUNDARIES = {
   '/js/components/voyage-sea/': ['/js/game/', '/js/stores/', '/js/render/', '/js/input/'],
   '/js/components/voyage-hud/': ['/js/stores/', '/js/game/objectives.js'],
   '/js/components/voyage-chart/': ['/js/stores/', '/js/game/terrain.js', '/js/game/chart-data.js'],
+  '/js/components/voyage-reading/': ['/js/stores/', '/js/game/readings.js'],
   '/js/components/voyage-log/': ['/js/stores/'],
+  '/js/audio/': ['/js/stores/'],
   '/js/gift/': [],
   '/js/lib/': [],
 };

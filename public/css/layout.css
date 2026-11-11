@@ -213,4 +213,86 @@
         color 0.1s;
     }
   }
+
+  /* The aids: sound, and something to read. Beside the map button on a wide screen, in the gap
+     between the thumbs on a small one. */
+  .aids {
+    position: fixed;
+    z-index: 2;
+    inset-block-start: max(0.75rem, env(safe-area-inset-top));
+    inset-inline-end: calc(max(0.75rem, env(safe-area-inset-right)) + 24.5rem);
+    display: flex;
+    gap: 0.5rem;
+
+    voyage-sea:not([live]) & {
+      display: none;
+    }
+
+    @media (width < 48rem) or (height < 30rem) {
+      inset-block: auto calc(0.75rem + env(safe-area-inset-bottom));
+      inset-inline: 50% auto;
+      flex-direction: column-reverse;
+      translate: -50% 0;
+    }
+
+    & > button,
+    & voyage-reading > button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      min-inline-size: 2.75rem;
+      min-block-size: 2.75rem;
+      padding: 0.25rem 0.8rem;
+      border: 1px solid var(--hud-line);
+      border-radius: 0.5rem;
+      background: var(--hud-bg);
+      color: var(--hud-fg);
+      font: 700 0.875rem / 1 var(--font-text);
+      cursor: pointer;
+
+      @media (width < 48rem) or (height < 30rem) {
+        padding: 0.25rem;
+
+        & span {
+          position: absolute;
+          inline-size: 1px;
+          block-size: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+          white-space: nowrap;
+        }
+      }
+    }
+
+    & button svg {
+      flex: none;
+      inline-size: 1.375rem;
+      block-size: 1.375rem;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    & button:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    /* Sound off: the waves give way to a cross, and the border goes dashed. */
+    & .sound .mute,
+    & .sound[aria-pressed='false'] .waves {
+      display: none;
+    }
+
+    & .sound[aria-pressed='false'] {
+      border-style: dashed;
+
+      & .mute {
+        display: inline;
+      }
+    }
+  }
 }

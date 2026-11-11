@@ -55,35 +55,36 @@
     font-display: swap;
   }
 
-  /* Poster, the default view and the logbook page. */
+  /* The HUD, the cards and every panel are parchment and ink in every view: the ship's papers do
+     not change when the sea does. Only what lies behind them follows the view. */
   :root {
     /* The theme contract: every element sheet uses only these. */
-    --card-bg: #fff4dc;
-    --card-fg: #12304a;
-    --card-accent: #a8321a;
-    --card-line: #12304a;
-    --btn-bg: #12304a;
-    --btn-fg: #fff4dc;
-    --hud-bg: #12304a;
-    --hud-fg: #fff4dc;
-    --hud-line: #6f8496;
-    --hud-accent: #f9b84a;
-    --font-display: Anton, Impact, 'Arial Narrow Bold', sans-serif;
-    --font-text: 'DM Sans', system-ui, sans-serif;
-    --focus: #f9b84a;
+    --card-bg: #e9dcbc;
+    --card-fg: #2a2418;
+    --card-accent: #7a2a1c;
+    --card-line: #2a2418;
+    --btn-bg: #2a2418;
+    --btn-fg: #e9dcbc;
+    --hud-bg: #e9dcbc;
+    --hud-fg: #2a2418;
+    --hud-line: #7d6f52;
+    --hud-accent: #7a2a1c;
+    --font-display: 'IM Fell English SC', 'IM Fell English', Georgia, serif;
+    --font-text: 'IM Fell English', Georgia, serif;
+    --focus: #7a2a1c;
 
     /* How a view shapes its cards and its display type. */
-    --card-border: 3px;
-    --card-radius: 0.25rem;
-    --card-shadow: 0.5rem 0.5rem 0 rgb(18 48 74 / 0.55);
-    --text-size: 1rem;
+    --card-border: 1px;
+    --card-radius: 0.125rem;
+    --card-shadow: 0 0 0 0.25rem #e9dcbc, 0 0 0 0.3125rem #2a2418;
+    --text-size: 1.125rem;
     --text-weight: 400;
-    --display-size: 2.125rem;
+    --display-size: 2rem;
     --display-weight: 400;
-    --display-tracking: 0.02em;
-    --display-transform: uppercase;
+    --display-tracking: 0.03em;
+    --display-transform: none;
     --display-prefix: '';
-    --quote-style: normal;
+    --quote-style: italic;
 
     /* What lies behind the cards until the canvas draws. */
     --sea: #0f6e7a;
@@ -104,82 +105,14 @@
   }
 
   voyage-sea[data-view='terminal'] {
-    --card-bg: #0b1014;
-    --card-fg: #c9d6cf;
-    --card-accent: #7ee0a1;
-    --card-line: #3f7a5c;
-    --btn-bg: #7ee0a1;
-    --btn-fg: #0b1014;
-    --hud-bg: #0b1014;
-    --hud-fg: #c9d6cf;
-    --hud-line: #3f7a5c;
-    --hud-accent: #f0b35a;
-    --font-display: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
-    --font-text: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
-    --focus: #f0b35a;
-
-    --card-border: 1px;
-    --card-radius: 0;
-    --card-shadow: 0 0 0 0.25rem rgb(11 16 20 / 0.6);
-    --text-size: 0.9375rem;
-    --display-size: 1.5rem;
-    --display-weight: 700;
-    --display-tracking: 0;
-    --display-transform: none;
-    --display-prefix: '> ';
     --sea: #06090c;
   }
 
   voyage-sea[data-view='gold'] {
-    --card-bg: #0e0e0d;
-    --card-fg: #f1ece0;
-    --card-accent: #d4ae5a;
-    --card-line: #d4ae5a;
-    --btn-bg: #d4ae5a;
-    --btn-fg: #0e0e0d;
-    --hud-bg: #0e0e0d;
-    --hud-fg: #f1ece0;
-    --hud-line: #8f7539;
-    --hud-accent: #d4ae5a;
-    --font-display: 'Poiret One', 'Josefin Sans', 'Century Gothic', sans-serif;
-    --font-text: 'Josefin Sans', 'Century Gothic', system-ui, sans-serif;
-    --focus: #f1ece0;
-
-    --card-border: 1px;
-    --card-radius: 0;
-    --card-shadow: 0 0 0 0.3125rem #0e0e0d, 0 0 0 0.375rem #d4ae5a;
-    --text-size: 1.0625rem;
-    --display-size: 2rem;
-    --display-weight: 400;
-    --display-tracking: 0.1em;
-    --display-transform: uppercase;
     --sea: #1b1710;
   }
 
   voyage-sea[data-view='chart'] {
-    --card-bg: #e9dcbc;
-    --card-fg: #2a2418;
-    --card-accent: #7a2a1c;
-    --card-line: #2a2418;
-    --btn-bg: #2a2418;
-    --btn-fg: #e9dcbc;
-    --hud-bg: #e9dcbc;
-    --hud-fg: #2a2418;
-    --hud-line: #7d6f52;
-    --hud-accent: #7a2a1c;
-    --font-display: 'IM Fell English SC', 'IM Fell English', Georgia, serif;
-    --font-text: 'IM Fell English', Georgia, serif;
-    --focus: #7a2a1c;
-
-    --card-border: 1px;
-    --card-radius: 0.125rem;
-    --card-shadow: 0 0 0 0.25rem #e9dcbc, 0 0 0 0.3125rem #2a2418;
-    --text-size: 1.125rem;
-    --display-size: 2rem;
-    --display-weight: 400;
-    --display-tracking: 0.03em;
-    --display-transform: none;
-    --quote-style: italic;
     --sea: #cdbd95;
   }
 }

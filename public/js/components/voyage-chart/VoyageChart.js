@@ -12,7 +12,11 @@ const LEGIBLE = 680;
 /** Each press of a zoom button changes the size by this factor. */
 const ZOOM = 1.5;
 
-const FONTS = ['italic 20px "IM Fell English"', '20px "IM Fell English"', '20px "IM Fell English SC"'];
+const FONTS = [
+  'italic 20px "IM Fell English"',
+  '20px "IM Fell English"',
+  '20px "IM Fell English SC"',
+];
 
 /**
  * The map of the area: a button (and the M key) that unrolls a paper chart in a dialog.
@@ -212,7 +216,12 @@ export class VoyageChart extends HTMLElement {
   #grab(event) {
     const sheet = this.#sheet;
     if (!sheet || event.pointerType !== 'mouse' || event.button !== 0) return;
-    this.#grip = { x: event.clientX, y: event.clientY, left: sheet.scrollLeft, top: sheet.scrollTop };
+    this.#grip = {
+      x: event.clientX,
+      y: event.clientY,
+      left: sheet.scrollLeft,
+      top: sheet.scrollTop,
+    };
     sheet.setPointerCapture(event.pointerId);
     sheet.toggleAttribute('data-dragging', true);
   }
