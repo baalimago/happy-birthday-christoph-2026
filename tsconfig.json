@@ -16,7 +16,8 @@
       "#components/*": ["./public/js/components/*"],
       "#game/*": ["./public/js/game/*"],
       "#render/*": ["./public/js/render/*"],
-      "#input/*": ["./public/js/input/*"]
+      "#input/*": ["./public/js/input/*"],
+      "#audio/*": ["./public/js/audio/*"]
     }
   },
   "include": ["public/js/**/*.js", "types.d.ts", "types.gift.d.ts"],
