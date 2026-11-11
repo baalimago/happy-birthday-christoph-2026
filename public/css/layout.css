@@ -238,6 +238,11 @@
       flex-direction: column-reverse;
     }
 
+    /* A phone on its side has no height to stack them in. */
+    @media (height < 30rem) {
+      flex-direction: row;
+    }
+
     & > button,
     & voyage-reading > button {
       display: inline-flex;
@@ -288,6 +293,26 @@
     & .sound .mute,
     & .sound[aria-pressed='false'] .waves {
       display: none;
+    }
+
+    & .music[aria-pressed='false'] {
+      border-style: dashed;
+      opacity: 0.7;
+    }
+
+    /* Sound and music are known by their pictures; only the library is spelt out. */
+    & > button span {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    & > button {
+      position: relative;
+      padding-inline: 0.25rem;
     }
 
     & .sound[aria-pressed='false'] {

@@ -248,6 +248,8 @@ test('passes axe at sea in every view, with the chart rolled up and unrolled', a
   }
   await page.keyboard.press('m');
   await expect(page.locator('voyage-chart')).toHaveAttribute('data-drawn', '', { timeout: 30_000 });
+  // The chart fades in: measure its colours once it is fully there.
+  await expect(page.locator('voyage-chart dialog')).toHaveCSS('opacity', '1');
   const open = await new AxeBuilder({ page }).include('voyage-chart').withTags(tags).analyze();
   expect(open.violations).toEqual([]);
 });
