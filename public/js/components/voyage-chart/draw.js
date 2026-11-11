@@ -1,6 +1,8 @@
 // Draws the sea chart: the height grid as an engraved paper chart, north up. Coast, hills, woods,
-// shoals, names, a rose and a scale, and nothing else: no boat, no ports, no route, no cave.
+// shoals, names, a rose and a scale, and one mark: the home harbour, where the voyage begins.
+// Nothing else: no boat, no ports, no route, no cave.
 
+import { START } from '#game/chart-data.js';
 import { noise } from '#game/terrain.js';
 
 /**
@@ -588,6 +590,30 @@ export function drawChart(canvas, terrain, features) {
   ctx.globalAlpha = 1;
   ctx.lineWidth = 0.9 * s;
   ctx.stroke(rocks);
+  ctx.restore();
+
+  // The one mark on the chart: an anchor in the home harbour.
+  ctx.save();
+  ctx.translate(mapX(START.x), mapY(START.z));
+  ctx.strokeStyle = RED;
+  ctx.fillStyle = RED;
+  ctx.lineWidth = 1.5 * s;
+  ctx.lineCap = 'round';
+  const a = 10 * s;
+  ctx.beginPath();
+  ctx.arc(0, -a, a * 0.28, 0, Math.PI * 2);
+  ctx.moveTo(0, -a * 0.72);
+  ctx.lineTo(0, a);
+  ctx.moveTo(-a * 0.5, -a * 0.35);
+  ctx.lineTo(a * 0.5, -a * 0.35);
+  ctx.moveTo(-a * 0.8, a * 0.3);
+  ctx.quadraticCurveTo(-a * 0.7, a, 0, a);
+  ctx.quadraticCurveTo(a * 0.7, a, a * 0.8, a * 0.3);
+  ctx.stroke();
+  ctx.font = `italic ${18 * s}px ${SERIF}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  write(ctx, 'Home harbour', 0, -a * 2.1, 4 * s);
   ctx.restore();
 
   // The rose and the scale.
