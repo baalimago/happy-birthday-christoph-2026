@@ -262,3 +262,24 @@ test('without WebGL 2 the page stays a logbook with every card readable', async 
   }
   await expect(page.locator('voyage-log [data-card="wreck"]')).toBeHidden();
 });
+
+test('the anchor (X) holds her: the button fills and the gauge says so', async ({ page }) => {
+  await board(page);
+  await weighAnchor(page);
+  const anchor = page.locator('button[data-helm="anchor"]');
+  await expect(anchor).toHaveAttribute('aria-pressed', 'false');
+  await page.keyboard.press('x');
+  await expect(anchor).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('voyage-hud [data-power]')).toHaveText('at anchor (X weighs it)', {
+    timeout: 150_000,
+  });
+  await anchor.click();
+  await expect(anchor).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('the graphics switch is offered only where either look can be drawn', async ({ page }) => {
+  await board(page);
+  await weighAnchor(page);
+  // Software WebGL: triangles only, so there is nothing to choose.
+  await expect(page.locator('voyage-hud button[data-graphics]')).toBeHidden();
+});

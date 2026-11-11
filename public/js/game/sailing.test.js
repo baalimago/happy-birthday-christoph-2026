@@ -569,3 +569,20 @@ test('the wind is not the same everywhere: gusts lie in patches', () => {
   }
   assert.ok(differs);
 });
+
+test('the anchor brings her up gently and holds her against wind, engine and rocket', () => {
+  const boat = newBoat({ ...START, heading: 0 });
+  boat.speed = 6;
+  const wind = { from: Math.PI, speed: 1.2 };
+  const helm = { left: false, right: false, out: false, in: false, engine: true, rocket: true };
+  const held = { ...helm, anchor: true };
+  sail(boat, held, wind, 0.05, terrain);
+  assert.ok(boat.speed > 4, 'she is not stopped dead');
+  for (let i = 0; i < 200; i++) sail(boat, held, wind, 0.05, terrain);
+  assert.equal(boat.speed, 0);
+  const { x, z } = boat;
+  for (let i = 0; i < 100; i++) sail(boat, held, wind, 0.05, terrain);
+  assert.deepEqual([boat.x, boat.z], [x, z]);
+  for (let i = 0; i < 40; i++) sail(boat, { ...helm, rocket: false }, wind, 0.05, terrain);
+  assert.ok(boat.speed > 1, 'anchor weighed, she gathers way again');
+});

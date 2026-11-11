@@ -1,3 +1,4 @@
+import { graphics } from '#stores/graphics.js';
 import { passage } from '#stores/passage.js';
 import { voyage } from '#stores/voyage.js';
 import { isDone, unlockedViews } from '#game/objectives.js';
@@ -124,9 +125,21 @@ export class VoyageHud extends HTMLElement {
     this.#connected = new AbortController();
     const { signal } = this.#connected;
     this.addEventListener('click', (event) => this.#choose(event), { signal });
+    this.addEventListener(
+      'click',
+      (event) => {
+        if (!(event.target instanceof Element && event.target.closest('button[data-graphics]')))
+          return;
+        const { using, loading, wish } = graphics.state;
+        const now = loading ? wish : using;
+        graphics.ask(now === 'fine' ? 'fast' : 'fine');
+      },
+      { signal },
+    );
     document.addEventListener('keydown', (event) => this.#cycle(event), { signal });
     voyage.addEventListener('change', () => this.#renderVoyage(), { signal });
     passage.addEventListener('change', () => this.#renderPassage(), { signal });
+    graphics.addEventListener('change', () => this.#renderGraphics(), { signal });
     signal.addEventListener('abort', () => {
       this.#stopLingering();
       clearTimeout(this.#reading);
@@ -135,6 +148,20 @@ export class VoyageHud extends HTMLElement {
     this.#addDoneMarks();
     this.#renderVoyage();
     this.#renderPassage();
+    this.#renderGraphics();
+  }
+
+  /** The graphics switch: shown where the machine can draw either look, and says which is on. */
+  #renderGraphics() {
+    const button = this.querySelector('button[data-graphics]');
+    if (!(button instanceof HTMLElement)) return;
+    const { using, loading, choice, wish } = graphics.state;
+    button.hidden = !choice || using === null;
+    const fine = using === 'fine';
+    let label = fine ? 'Graphics: fine' : 'Graphics: low-poly';
+    if (loading) label = wish === 'fine' ? 'Loading fine graphics…' : 'Loading low-poly…';
+    if (button.textContent !== label) button.textContent = label;
+    button.toggleAttribute('data-loading', loading);
   }
 
   /** V steps through the views unlocked so far. @param {KeyboardEvent} event */
@@ -287,6 +314,7 @@ export class VoyageHud extends HTMLElement {
   #renderInstruments() {
     const { heading, speed, windFrom, windSpeed, relative, sheet, best, trim, engine } =
       passage.state.log;
+    const anchored = passage.state.log.anchor === true;
     const hull = Math.round(Math.min(1, Math.max(0, voyage.state.hull ?? 1)) * 100);
     const low = hull < HULL_LOW * 100;
 
@@ -327,7 +355,8 @@ export class VoyageHud extends HTMLElement {
     this.#flag('.instruments', 'data-irons', irons);
     // What to do about it, in plain words. Under engine the sails do not matter.
     let advice = '';
-    if (irons) advice = 'In irons: bear away or start the engine';
+    if (anchored) advice = '';
+    else if (irons) advice = 'In irons: bear away or start the engine';
     else if (!engine && trim <= 0.8) {
       advice =
         sheet < best
@@ -340,7 +369,9 @@ export class VoyageHud extends HTMLElement {
       const first = this.querySelector('li[data-goal^="port:"]')?.getAttribute('data-goal') ?? '';
       const done = voyage.state.found.includes(first.slice(5));
       let lesson = '';
-      if (!done && engine) {
+      if (!done && anchored) {
+        lesson = 'At anchor: she is held where she lies. Press X to weigh anchor and sail on.';
+      } else if (!done && engine) {
         lesson = 'Engine on. Steer (← →) for the lighthouse ahead.';
       } else if (!done && irons) {
         lesson =
@@ -365,7 +396,8 @@ export class VoyageHud extends HTMLElement {
     // Speed, and what drives the boat.
     const knots = Math.max(0, speed).toFixed(1);
     let power = 'under sail';
-    if (passage.state.log.rocket) power = 'Amin mode (R stops it)';
+    if (anchored) power = 'at anchor (X weighs it)';
+    else if (passage.state.log.rocket) power = 'Amin mode (R stops it)';
     else if (engine) power = 'under engine';
     else if (speed < 0.05) power = 'stopped';
     this.#say('[data-speed]', knots);

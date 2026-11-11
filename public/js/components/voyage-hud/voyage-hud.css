@@ -399,6 +399,16 @@
       font-weight: 700;
     }
 
+    /* The graphics switch, under the instruments. */
+    & .graphics {
+      inline-size: 100%;
+      margin-block-start: 0.5rem;
+    }
+
+    & .graphics[data-loading] {
+      border-style: dashed;
+    }
+
     /* Last, so it beats the display values above. */
     & [hidden] {
       display: none;
@@ -553,6 +563,12 @@
 
       & .irons {
         font-size: 0.75rem;
+      }
+
+      & .graphics {
+        inline-size: auto;
+        margin-block-start: 0.25rem;
+        font-size: 0.6875rem;
       }
     }
   }

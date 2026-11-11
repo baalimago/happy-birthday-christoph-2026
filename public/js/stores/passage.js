@@ -15,6 +15,7 @@ import { Store } from '#lib/store.js';
  * @property {number} trim how well the sails are set, 0 flapping .. 1 perfect
  * @property {boolean} engine the engine is running
  * @property {boolean} [rocket] the rocket is lit (Amin mode)
+ * @property {boolean} [anchor] the anchor is down
  * @property {number} [gust] 0..1, how hard it is gusting on top of windSpeed
  * @property {number} [sea] 0..1, the sea state where the boat is
  * @property {number} [land] 0 open sea .. 1 on the beach

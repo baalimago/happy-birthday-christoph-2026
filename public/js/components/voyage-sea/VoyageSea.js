@@ -4,6 +4,7 @@ import { bearingTo, damageFor, newBoat, sail, windAt } from '#game/sailing.js';
 import { getTerrain, heightAt, insideCave, isWater } from '#game/terrain.js';
 import { takeHelm } from '#input/helm.js';
 import { createAutoRenderer } from '#render/auto.js';
+import { graphics } from '#stores/graphics.js';
 import { VIEWS } from '#render/views.js';
 import { passage } from '#stores/passage.js';
 import { voyage } from '#stores/voyage.js';
@@ -105,12 +106,26 @@ export class VoyageSea extends HTMLElement {
   #abort;
   /** @type {HTMLCanvasElement[]} */
   #canvases = [];
-  /** @type {import('#render/renderer.js').Renderer | null} */
+  /** @type {import('#render/auto.js').AutoRenderer | null} */
   #renderer = null;
+  /** How many askings of the graphics store have been passed to the renderer. */
+  #asks = 0;
+  /** A change of look has been asked for and is about to be passed on. */
+  #switching = false;
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
+  #switchTimer;
   /** @type {Terrain | undefined} */
   #terrain;
   /** @type {import('#input/helm.js').Helm} */
-  #helm = { left: false, right: false, out: false, in: false, engine: false, rocket: false };
+  #helm = {
+    left: false,
+    right: false,
+    out: false,
+    in: false,
+    engine: false,
+    rocket: false,
+    anchor: false,
+  };
   /** @type {Mark[]} */
   #marks = [];
   #boat = newBoat(START);
@@ -175,7 +190,8 @@ export class VoyageSea extends HTMLElement {
     // `?fine` and `?fast` in the address insist on one renderer; otherwise the machine decides.
     const asked = new URLSearchParams(location.search);
     const mode = asked.has('fine') ? 'fine' : asked.has('fast') ? 'fast' : 'auto';
-    this.#renderer = createAutoRenderer(canvas, fine, terrain, mode);
+    this.#asks = graphics.state.asks;
+    this.#renderer = createAutoRenderer(canvas, fine, terrain, mode, graphics.state.wish);
     if (!this.#renderer) {
       this.removeAttribute('loading');
       return;
@@ -194,6 +210,23 @@ export class VoyageSea extends HTMLElement {
     this.#listenForLooking(canvas, signal);
     this.#listenForLooking(fine, signal);
     voyage.addEventListener('change', () => this.#onVoyage(), { signal });
+    // The captain asks for the other look: the renderer brings it on when it is ready.
+    graphics.addEventListener(
+      'change',
+      () => {
+        const { wish, asks } = graphics.state;
+        if (!wish || asks === this.#asks) return;
+        this.#asks = asks;
+        // Building the other look can hold the page for a moment: let the HUD say so first.
+        this.#switching = true;
+        clearTimeout(this.#switchTimer);
+        this.#switchTimer = setTimeout(() => {
+          this.#switching = false;
+          this.#renderer?.prefer(wish);
+        }, 120);
+      },
+      { signal },
+    );
 
     const motion = matchMedia('(prefers-reduced-motion: reduce)');
     this.#still = motion.matches;
@@ -232,6 +265,8 @@ export class VoyageSea extends HTMLElement {
 
   disconnectedCallback() {
     this.#abort?.abort();
+    clearTimeout(this.#switchTimer);
+    this.#switching = false;
     this.#stop();
     this.#renderer?.dispose();
     this.#renderer = null;
@@ -340,6 +375,8 @@ export class VoyageSea extends HTMLElement {
     if (!renderer || !terrain) return;
     // Nothing moves until there is a sea to see.
     const ready = renderer.ready();
+    const busy = this.#switching || renderer.wants() !== renderer.look();
+    graphics.report(renderer.look(), busy, renderer.choice);
     if (ready === 'failed') this.#ashore();
     if (ready !== 'ready') {
       this.#last = 0;
@@ -482,6 +519,7 @@ export class VoyageSea extends HTMLElement {
         trim: outcome.trim,
         engine: this.#helm.engine,
         rocket: this.#helm.rocket,
+        anchor: this.#helm.anchor,
         gust: wind.gust,
         sea: wind.sea,
         // Shoaling water means land is near: the sea floor runs down to -5 about 40 units out.

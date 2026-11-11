@@ -72,7 +72,7 @@
     inset-block-end: max(0.75rem, env(safe-area-inset-bottom));
     display: grid;
     grid-template:
-      '. . . out .' var(--helm-sheet)
+      '. anchor . out .' var(--helm-sheet)
       'left engine . in right' var(--helm-sheet)
       / auto auto 1fr auto auto;
     gap: 0.5rem;
@@ -134,13 +134,18 @@
     border-style: dashed;
   }
 
+  .helm [data-helm='anchor'] {
+    grid-area: anchor;
+    border-style: dashed;
+  }
+
   .helm button:active {
     background: var(--hud-accent);
     color: var(--hud-bg);
   }
 
-  /* The engine runs: the button fills, its border closes, the word changes. */
-  .helm [data-helm='engine'][aria-pressed='true'] {
+  /* The engine runs, or the anchor is down: the button fills, its border closes, the word changes. */
+  .helm :is([data-helm='engine'], [data-helm='anchor'])[aria-pressed='true'] {
     border-style: solid;
     border-color: var(--hud-accent);
     background: var(--hud-accent);
@@ -148,8 +153,8 @@
     color: var(--hud-bg);
   }
 
-  /* "Engine" is the longest word on the helm. */
-  .helm [data-helm='engine'] span {
+  /* "Engine" and "Anchor" are the longest words on the helm. */
+  .helm :is([data-helm='engine'], [data-helm='anchor']) span {
     font-size: 0.5625rem;
     letter-spacing: 0;
   }
@@ -178,7 +183,9 @@
     }
 
     .helm {
-      grid-template: 'left engine . in out right' var(--helm-button) / auto auto 1fr auto auto auto;
+      grid-template:
+        'left engine anchor . in out right' var(--helm-button)
+        / auto auto auto 1fr auto auto auto;
       align-items: center;
     }
   }
@@ -195,7 +202,7 @@
       inset-inline: auto max(1rem, env(safe-area-inset-right));
       inset-block-end: max(1rem, env(safe-area-inset-bottom));
       grid-template:
-        'engine out .' var(--helm-sheet)
+        'engine out anchor' var(--helm-sheet)
         'left in right' var(--helm-sheet)
         / auto auto auto;
     }

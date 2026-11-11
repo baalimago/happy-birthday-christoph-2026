@@ -8,7 +8,7 @@ import { isWater, noise } from './terrain.js';
 /**
  * @typedef {import('./terrain.js').Terrain} Terrain
  * @typedef {{ x: number, z: number, heading: number }} Berth
- * @typedef {{ left: boolean, right: boolean, out: boolean, in: boolean, engine: boolean, rocket?: boolean }} Helm
+ * @typedef {{ left: boolean, right: boolean, out: boolean, in: boolean, engine: boolean, rocket?: boolean, anchor?: boolean }} Helm
  */
 
 /**
@@ -45,6 +45,8 @@ import { isWater, noise } from './terrain.js';
 export const MAX_SPEED = 7.5;
 /** Amin mode: a rocket on the stern, ten times the best the sails can do. */
 export const ROCKET_SPEED = MAX_SPEED * 10;
+/** Seconds for the anchor to take most of the way off her. */
+const ANCHOR_BITE = 0.8;
 /** Under engine alone. */
 export const ENGINE_SPEED = 3.4;
 
@@ -233,8 +235,13 @@ export function sail(boat, helm, wind, dt, terrain) {
   let target = Math.min(MAX_SPEED * drive, MAX_SPEED * 1.12);
   if (helm.engine) target = Math.max(target, ENGINE_SPEED);
   if (helm.rocket) target = ROCKET_SPEED;
-  const lag = helm.rocket ? 1.2 : target > boat.speed ? GATHER : CARRY;
+  // The anchor is down: whatever drives her, she is brought up gently and held.
+  if (helm.anchor) target = 0;
+  let lag = target > boat.speed ? GATHER : CARRY;
+  if (helm.rocket) lag = 1.2;
+  if (helm.anchor) lag = ANCHOR_BITE;
   boat.speed += (target - boat.speed) * (1 - Math.exp(-dt / lag));
+  if (helm.anchor && Math.abs(boat.speed) < 0.05) boat.speed = 0;
   // Way left over from the rocket bleeds off through the normal lag rather than vanishing.
   const top = helm.rocket || boat.speed > MAX_SPEED * 1.2 ? ROCKET_SPEED : MAX_SPEED * 1.12;
   boat.speed = clamp(boat.speed, ASTERN, top);

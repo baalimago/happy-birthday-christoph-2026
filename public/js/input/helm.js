@@ -2,11 +2,12 @@
 //   steer        ArrowLeft / ArrowRight, or A / D
 //   sheet        ArrowUp lets the sails out, ArrowDown hauls them in (or W / S)
 //   engine       E switches it on and off
+//   anchor       X drops it and weighs it
 //   rocket       R five times in quick succession lights it, and R once more puts it out (Amin mode)
 
 /**
- * @typedef {{ left: boolean, right: boolean, out: boolean, in: boolean, engine: boolean, rocket: boolean }} Helm
- *   left, right, out and in are true while held; engine and rocket stay on until switched off
+ * @typedef {{ left: boolean, right: boolean, out: boolean, in: boolean, engine: boolean, rocket: boolean, anchor: boolean }} Helm
+ *   left, right, out and in are true while held; engine, rocket and anchor stay until switched
  * @typedef {'left' | 'right' | 'out' | 'in'} Order
  */
 
@@ -30,22 +31,31 @@ const FUSE_GAP = 900;
 
 /**
  * Listen for steering until the signal aborts. The returned object is live: read it every frame.
- * On-screen buttons are `button[data-helm="left|right|out|in|engine"]` inside `root`; the engine
- * button gets `aria-pressed`.
+ * On-screen buttons are `button[data-helm="left|right|out|in|engine|anchor"]` inside `root`; the
+ * engine and anchor buttons get `aria-pressed`.
  * @param {HTMLElement} root
  * @param {AbortSignal} signal
  * @returns {Helm}
  */
 export function takeHelm(root, signal) {
   /** @type {Helm} */
-  const helm = { left: false, right: false, out: false, in: false, engine: false, rocket: false };
+  const helm = {
+    left: false,
+    right: false,
+    out: false,
+    in: false,
+    engine: false,
+    rocket: false,
+    anchor: false,
+  };
   const release = () => {
     helm.left = helm.right = helm.out = helm.in = false;
   };
-  const switchEngine = () => {
-    helm.engine = !helm.engine;
-    for (const button of root.querySelectorAll('button[data-helm="engine"]')) {
-      button.setAttribute('aria-pressed', String(helm.engine));
+  /** @param {'engine' | 'anchor'} gear */
+  const flip = (gear) => {
+    helm[gear] = !helm[gear];
+    for (const button of root.querySelectorAll(`button[data-helm="${gear}"]`)) {
+      button.setAttribute('aria-pressed', String(helm[gear]));
     }
   };
 
@@ -101,7 +111,8 @@ export function takeHelm(root, signal) {
     (event) => {
       if (typing(event)) return;
       const key = keyOf(event);
-      if (key === 'e' && !event.repeat) switchEngine();
+      if (key === 'e' && !event.repeat) flip('engine');
+      if (key === 'x' && !event.repeat) flip('anchor');
       if (key === 'r' && !event.repeat) pressFuse();
       const order = KEYS[key];
       if (!order) return;
@@ -155,8 +166,8 @@ export function takeHelm(root, signal) {
     (event) => {
       const hit = buttonOf(event);
       if (!hit) return;
-      if (hit.order === 'engine') {
-        switchEngine();
+      if (hit.order === 'engine' || hit.order === 'anchor') {
+        flip(hit.order);
         return;
       }
       // Enter or Space on a focused button: a click with no pointer. Hold the order for a moment.

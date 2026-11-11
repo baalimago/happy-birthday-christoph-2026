@@ -88,6 +88,7 @@
 <link rel="modulepreload" href="/js/render/shaders/scene.js">
 <link rel="modulepreload" href="/js/render/shaders/terminal.js">
 <link rel="modulepreload" href="/js/render/views.js">
+<link rel="modulepreload" href="/js/stores/graphics.js">
 <link rel="modulepreload" href="/js/stores/passage.js">
 <link rel="modulepreload" href="/js/stores/voyage.js">
 <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
@@ -132,6 +133,7 @@
         <li><strong>Steer</strong> with <kbd>←</kbd> and <kbd>→</kbd>. The compass is top right.</li>
         <li><strong>Sails:</strong> <kbd>↑</kbd> lets them out, <kbd>↓</kbd> hauls them in. Trim until the boom meets the marker on the wind dial; the instruments tell you which way. You cannot sail straight into the wind.</li>
         <li><strong>Easier:</strong> <kbd>E</kbd> starts the engine, and it works in any wind.</li>
+        <li><strong>To stop:</strong> <kbd>X</kbd> drops the anchor and holds her where she lies. <kbd>X</kbd> again weighs it.</li>
         <li><strong>Each place found</strong> gives a passage for the ship's library (<kbd>L</kbd>), and some unlock a new view of the sea: switch with <kbd>V</kbd> or the buttons under the Captain's orders. <kbd>Q</kbd> mutes the sound. Keep off the rocks.</li>
       </ol>
       <p class="ashore">No WebGL aboard? Then this is the logbook, and it has everything the ports would have paid out.</p>
@@ -310,6 +312,7 @@
         </div>
         <p class="irons" data-irons-note hidden>In irons: bear away or start the engine</p>
       </div>
+      <button type="button" class="graphics" data-graphics title="Switch between fine and low-poly graphics" hidden>Graphics: fine</button>
     </div>
   </voyage-hud>
   <voyage-chart>
@@ -406,6 +409,10 @@
     <button type="button" data-helm="engine" aria-label="Engine" aria-pressed="false">
       <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5"/><path d="M12 10.5C9.5 8 10 3.5 12 3.5s2.5 4.5 0 7z"/><path d="M12 10.5C9.5 8 10 3.5 12 3.5s2.5 4.5 0 7z" transform="rotate(120 12 12)"/><path d="M12 10.5C9.5 8 10 3.5 12 3.5s2.5 4.5 0 7z" transform="rotate(240 12 12)"/></svg>
       <span aria-hidden="true">Engine</span>
+    </button>
+    <button type="button" data-helm="anchor" aria-label="Anchor" aria-pressed="false" aria-keyshortcuts="X">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7v14"/><path d="M8.5 10.5h7"/><path d="M4.5 14.5c.6 4 3.6 6.5 7.5 6.5s6.9-2.5 7.5-6.5"/></svg>
+      <span aria-hidden="true">Anchor</span>
     </button>
   </div>
 </voyage-sea>
