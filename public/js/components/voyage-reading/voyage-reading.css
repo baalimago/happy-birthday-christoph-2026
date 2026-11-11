@@ -12,22 +12,26 @@
       border-color: var(--hud-accent);
     }
 
+    /* The book: a tall page down the left side, set large enough to read with one eye on the sea. */
     & [data-reading-panel] {
       position: fixed;
-      z-index: 1;
-      inset-block: 15.5rem calc(0.75rem + env(safe-area-inset-bottom));
+      z-index: 3;
+      inset-block: max(0.75rem, env(safe-area-inset-top))
+        calc(0.75rem + env(safe-area-inset-bottom));
       inset-inline-start: max(0.75rem, env(safe-area-inset-left));
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
-      inline-size: 21rem;
-      min-block-size: 9rem;
-      padding: 0.85rem 1rem 0.75rem;
+      gap: 0.6rem;
+      inline-size: min(31rem, 44vw);
+      padding: 1.1rem 1.4rem 0.9rem;
       border: 1px solid var(--hud-line);
-      border-radius: 0.5rem;
-      background: color-mix(in srgb, var(--hud-bg) 94%, transparent);
+      border-radius: 0.25rem;
+      outline: 1px solid var(--hud-accent);
+      outline-offset: -0.4rem;
+      background: var(--hud-bg);
+      box-shadow: 0 0.75rem 2.5rem rgb(0 0 0 / 0.35);
       color: var(--hud-fg);
-      font: 1rem / 1.55 var(--font-text);
+      font: 1.1875rem / 1.6 var(--font-text);
 
       &[hidden] {
         display: none;
@@ -41,19 +45,36 @@
       /* The helm runs along the bottom here. */
       @media (width < 900px) {
         inset-block-end: calc(var(--helm-reserve) + 0.5rem + env(safe-area-inset-bottom));
+        inline-size: min(31rem, 100vw - 1.5rem);
       }
 
+      /* A phone: under the instruments, over the sea, above the thumbs. */
       @media (width < 48rem) {
-        inset-block-start: 10.5rem;
+        inset-block-start: 7.75rem;
         inset-inline: 0.5rem;
         inline-size: auto;
+        padding: 0.8rem 1rem 0.6rem;
+        font-size: 1.0625rem;
       }
 
       @media (height < 30rem) {
         inset-block-start: 0.5rem;
-        inset-inline: 21rem 0.5rem;
-        inline-size: auto;
+        inset-inline: 0.5rem auto;
+        inline-size: min(31rem, 60vw);
       }
+    }
+
+    & .keys {
+      opacity: 0.8;
+
+      @media (hover: none) {
+        display: none;
+      }
+    }
+
+    & button:disabled {
+      opacity: 0.4;
+      cursor: default;
     }
 
     & .eyebrow {
@@ -67,7 +88,7 @@
 
     & h2 {
       margin: 0;
-      font: 1.125rem / 1.2 var(--font-display);
+      font: 1.375rem / 1.2 var(--font-display);
       letter-spacing: 0.02em;
     }
 
@@ -88,7 +109,7 @@
       border-block: 1px solid var(--hud-line);
 
       & p {
-        margin-block: 0.6rem;
+        margin-block: 0.85rem;
         max-inline-size: 60ch;
         text-wrap: pretty;
       }

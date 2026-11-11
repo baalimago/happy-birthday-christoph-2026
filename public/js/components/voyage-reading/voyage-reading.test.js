@@ -97,99 +97,137 @@ test('R opens and closes it, and typing in a field is left alone', async ({ page
   await expect(page.getByLabel('Scratch')).toHaveValue('r');
 });
 
-test('a fresh voyage offers the reading for the first port, wittgenstein', async ({ page }) => {
+test('a fresh voyage has an empty shelf: no passage can be read before a place is found', async ({
+  page,
+}) => {
   const reading = await openReading(page);
   const all = await readings(page);
-  const index = all.findIndex((entry) => entry.leg === 'wittgenstein');
-  expect(index).toBeGreaterThanOrEqual(0);
-  const expected = all[index];
   await reading.locator('[data-reading-toggle]').click();
-  await expect(reading.locator('[data-reading-title]')).toHaveText(expected.work);
-  await expect(reading.locator('[data-reading-by]')).toContainText(
-    `${expected.author}, ${expected.year}`,
+  await expect(reading.locator('[data-reading-title]')).toHaveText('The shelf is empty');
+  await expect(reading.locator('[data-reading-count]')).toHaveText('nothing aboard yet');
+  const page1 = (await reading.locator('[data-reading-text]').textContent()) ?? '';
+  for (const { first } of all) expect(page1).not.toContain(first.slice(0, 40));
+  await expect(reading.locator('[data-reading-step="1"]')).toBeDisabled();
+  await expect(reading.locator('[data-reading-step="-1"]')).toBeDisabled();
+});
+
+test('each place found puts its own passage aboard, and only those can be read', async ({
+  page,
+}) => {
+  const reading = await openReading(page);
+  const all = await readings(page);
+  const of = (/** @type {string} */ leg) => all.find((entry) => entry.leg === leg) ?? all[0];
+  await reading.locator('[data-reading-toggle]').click();
+
+  await discover(page, ['juniper']);
+  await expect(reading.locator('[data-reading-title]')).toHaveText(of('juniper').work);
+  await expect(reading.locator('[data-reading-by]')).toContainText(of('juniper').author);
+  await expect(reading.locator('[data-reading-text] p').first()).toHaveText(of('juniper').first);
+  await expect(reading.locator('[data-reading-count]')).toHaveText(
+    `passage 1 of 1 aboard, ${all.length - 1} still to find`,
   );
-  await expect(reading.locator('[data-reading-text] p').first()).toHaveText(expected.first);
-  await expect(reading.locator('[data-reading-count]')).toHaveText(`${index + 1} of ${all.length}`);
+  // One passage: nothing to leaf to.
+  await expect(reading.locator('[data-reading-step="1"]')).toBeDisabled();
+
+  await discover(page, ['plato']);
+  await expect(reading.locator('[data-reading-title]')).toHaveText(of('plato').work);
+  await expect(reading.locator('[data-reading-count]')).toHaveText(
+    `passage 2 of 2 aboard, ${all.length - 2} still to find`,
+  );
 });
 
-test('the reading follows the first port not yet found', async ({ page }) => {
-  const reading = await openReading(page, { found: ['wittgenstein', 'juniper'] });
+test('the arrows leaf through the passages aboard, in the order found, and wrap round', async ({
+  page,
+}) => {
+  const reading = await openReading(page, { found: ['strand', 'edge', 'wittgenstein'] });
   const all = await readings(page);
-  /** @param {string} leg */
-  const expectLeg = async (leg) => {
-    const index = all.findIndex((entry) => entry.leg === leg);
-    expect(index, leg).toBeGreaterThanOrEqual(0);
-    await expect(reading.locator('[data-reading-title]')).toHaveText(all[index].work);
-    await expect(reading.locator('[data-reading-count]')).toHaveText(
-      `${index + 1} of ${all.length}`,
-    );
-  };
-  await reading.locator('[data-reading-toggle]').click();
-  await expectLeg('quickjs');
-
-  await discover(page, ['quickjs']);
-  await expectLeg('edge');
-});
-
-test('the arrows leaf through the readings and wrap round', async ({ page }) => {
-  const reading = await openReading(page);
+  const work = (/** @type {string} */ leg) => all.find((entry) => entry.leg === leg)?.work ?? '';
   await reading.locator('[data-reading-toggle]').click();
   const title = reading.locator('[data-reading-title]');
-  const count = reading.locator('[data-reading-count]');
-  const total = await page.evaluate(
-    async () => (await import('#game/readings.js')).READINGS.length,
-  );
-  const all = await readings(page);
-  const first = all.findIndex((entry) => entry.leg === 'wittgenstein');
-  await expect(count).toHaveText(`${first + 1} of ${total}`);
-
+  // It opens at the newest.
+  await expect(title).toHaveText(work('wittgenstein'));
   await reading.locator('[data-reading-step="1"]').click();
-  await expect(count).toHaveText(`${((first + 1) % total) + 1} of ${total}`);
-  await expect(title).toHaveText(all[(first + 1) % total].work);
-
+  await expect(title).toHaveText(work('strand'));
+  await reading.locator('[data-reading-step="1"]').click();
+  await expect(title).toHaveText(work('edge'));
   await reading.locator('[data-reading-step="-1"]').click();
-  await expect(count).toHaveText(`${first + 1} of ${total}`);
+  await expect(title).toHaveText(work('strand'));
+  await reading.locator('[data-reading-step="-1"]').click();
+  await expect(title).toHaveText(work('wittgenstein'));
+});
 
-  // Walk all the way round: after `total` steps back it is the same reading again.
-  for (let step = 0; step < total; step++) {
-    await reading.locator('[data-reading-step="-1"]').click();
-  }
-  await expect(count).toHaveText(`${first + 1} of ${total}`);
-  await expect(title).toHaveText(all[first].work);
+test('with all seven found the shelf is full', async ({ page }) => {
+  const reading = await openReading(page);
+  const all = await readings(page);
+  await discover(
+    page,
+    all.map((entry) => entry.leg),
+  );
+  await reading.locator('[data-reading-toggle]').click();
+  await expect(reading.locator('[data-reading-count]')).toHaveText(
+    `passage ${all.length} of ${all.length} aboard, the shelf is full`,
+  );
+});
+
+test('a port card offers its passage, and taking the offer opens the book at it', async ({
+  page,
+}) => {
+  const reading = await openReading(page, { found: ['juniper', 'plato'] });
+  const all = await readings(page);
+  await page.evaluate(() => {
+    const offer = document.querySelector('#port-juniper [data-reading-open]');
+    if (offer instanceof HTMLElement) offer.click();
+  });
+  await expect(reading).toHaveAttribute('open');
+  await expect(reading.locator('[data-reading-title]')).toHaveText(
+    all.find((entry) => entry.leg === 'juniper')?.work ?? '',
+  );
+});
+
+test('Space and the Page keys turn the page while the book is open', async ({ page }) => {
+  await page.setViewportSize({ width: 1000, height: 500 });
+  const reading = await openReading(page, { found: ['edge'] });
+  await page.keyboard.press('r');
+  const text = reading.locator('[data-reading-text]');
+  await expect(text).toBeVisible();
+  const top = () => text.evaluate((element) => element.scrollTop);
+  expect(await top()).toBe(0);
+  await page.locator('body').click({ position: { x: 900, y: 250 } });
+  await page.keyboard.press(' ');
+  await expect.poll(top).toBeGreaterThan(50);
+  await page.keyboard.press('PageUp');
+  await expect.poll(top).toBe(0);
+});
+
+test('a new voyage empties the shelf again', async ({ page }) => {
+  const reading = await openReading(page, { found: ['edge'] });
+  await reading.locator('[data-reading-toggle]').click();
+  await expect(reading.locator('[data-reading-title]')).not.toHaveText('The shelf is empty');
+  await page.evaluate(async () => (await import('#stores/voyage.js')).voyage.reset());
+  await expect(reading.locator('[data-reading-title]')).toHaveText('The shelf is empty');
+  await expect(reading.locator('[data-reading-count]')).toHaveText('nothing aboard yet');
 });
 
 test('"Put it away" closes the panel', async ({ page }) => {
   const reading = await openReading(page);
   await reading.locator('[data-reading-toggle]').click();
+  await expect(reading).toHaveAttribute('open');
   await reading.locator('[data-reading-close]').click();
   await expect(reading).not.toHaveAttribute('open');
-  await expect(reading.locator('[data-reading-panel]')).toBeHidden();
 });
 
-test('a new reading while closed marks the button fresh, and opening clears it', async ({
+test('a passage coming aboard while the book is shut marks the button fresh, and opening clears it', async ({
   page,
 }) => {
   const reading = await openReading(page);
-  // The first text is waiting when the page arrives; looking at it clears the mark.
-  await expect(reading).toHaveAttribute('fresh');
-  await reading.locator('[data-reading-toggle]').click();
+  // Nothing new on arrival.
   await expect(reading).not.toHaveAttribute('fresh');
-  await reading.locator('[data-reading-close]').click();
-  await expect(reading).not.toHaveAttribute('fresh');
-
   await discover(page, ['wittgenstein']);
   await expect(reading).toHaveAttribute('fresh');
-  await expect(reading).not.toHaveAttribute('open');
-
   await reading.locator('[data-reading-toggle]').click();
   await expect(reading).not.toHaveAttribute('fresh');
-  const all = await readings(page);
-  const work = (/** @type {string} */ leg) => all.find((entry) => entry.leg === leg)?.work ?? '';
-  await expect(reading.locator('[data-reading-title]')).toHaveText(work('juniper'));
-
-  // Open when the next port is found: the reader is looking, so nothing is marked.
+  // With the book open a new passage is simply shown.
   await discover(page, ['juniper']);
-  await expect(reading.locator('[data-reading-title]')).toHaveText(work('quickjs'));
   await expect(reading).not.toHaveAttribute('fresh');
 });
 
