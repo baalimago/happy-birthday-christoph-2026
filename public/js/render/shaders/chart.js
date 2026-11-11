@@ -92,9 +92,9 @@ vec3 skyWash(vec3 rd){
 }
 // the cave's lamp as a wash over w: a red-brown that warms to amber and pales by the flame
 vec3 lampWash(vec3 w, float g){
-  w = mix(w, vec3(0.70,0.34,0.21), smoothstep(0.02, 0.22, g));
-  w = mix(w, vec3(1.0,0.60,0.29), smoothstep(0.16, 0.55, g));
-  return mix(w, vec3(1.0,0.87,0.58), smoothstep(0.55, 1.0, g)*0.8);
+  w = mix(w, vec3(0.62,0.31,0.21), smoothstep(0.02, 0.26, g));
+  w = mix(w, vec3(1.0,0.60,0.29), smoothstep(0.24, 0.62, g));
+  return mix(w, vec3(1.0,0.87,0.58), smoothstep(0.6, 1.0, g)*0.8);
 }
 // paper, wash, ink; distance pales both (aerial perspective)
 vec3 plate(vec3 wash, float ink, vec3 inkCol, float t){

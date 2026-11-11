@@ -73,7 +73,7 @@ vec3 p_paint(float id, vec3 q){
       vec3 teak = P3(0.72,0.52,0.31)*(0.82 + 0.18*step(0.12, fract(q.x*11.0)));
       float rail = length(vec2(q.x*(1.0 + 0.5*smoothstep(0.2, 1.4, q.z))/0.47, q.z/1.32));
       float well = length(vec2(q.x/0.25, (q.z + 0.62)/0.40));
-      if (well < 1.0) teak = well > 0.82 ? P_CREAM*0.85 : P3(0.30,0.27,0.26);
+      if (well < 1.0) teak = well > 0.82 ? P_CREAM*0.85 : P3(0.46,0.33,0.22);
       return rail > 0.9 ? P_CREAM*0.85 : teak;
     }
     if (q.y > 0.13 && q.y < 0.2) return P_YELLOW;
@@ -154,6 +154,8 @@ vec3 p_sea(vec3 p, vec3 n, vec3 rd, float t){
   vec3 light = (vec3(0.30) + 0.5*ac + sc*(0.35 + 0.2*sh))*(1.0 - 0.28*gust);
   vec3 through = exp(-vec3(1.05, 0.22, 0.17)*depth*1.15);
   vec3 body = P_SAND*0.8*through*light + P_DEEP*0.8*light*(1.0 - exp(-depth*0.5));
+  vec2 bw = t < 220.0 ? beastWater(p.xz) : vec2(0.0);   // creatures: foam round them, shapes under
+  body *= 1.0 - 0.6*bw.y;
   // sunlight in the faces of the waves that lean to the eye
   float face = clamp(dot(nn.xz, -rd.xz)*2.2 + 0.1, 0.0, 1.0);
   body += P3(0.10,0.66,0.60)*sc*sh*0.10*face*(0.5 + 0.5*max(dot(rd, uSun), 0.0));
@@ -167,7 +169,7 @@ vec3 p_sea(vec3 p, vec3 n, vec3 rd, float t){
   c += sc*sh*pow(nh, e)*(0.5 + e*0.011)*min(1.0, 0.25 + 3.0*fres);
 
   // foam: the swash on the shore, lines of surf off it, the wake, a whitecap here and there
-  float foam = wk.x;
+  float foam = max(wk.x, bw.x);
   float shore = -mk.z;
   if (shore < 1.8) {
     float nz = noise(p.xz*1.3 + uT*0.2);

@@ -3,6 +3,7 @@
 
 import { VIEWS } from './views.js';
 import { FRAGMENT, PORTS, VERTEX } from './shaders/index.js';
+import { BEASTS, KINDS } from './shaders/creatures.js';
 import { RUNS } from './shaders/scene.js';
 
 /** @typedef {import('./views.js').View} View */
@@ -46,6 +47,17 @@ import { RUNS } from './shaders/scene.js';
  *   (left out, it follows the wind's strength)
  * @property {number} [rocket] 1 while the rocket strapped to the stern burns; 0 or absent, there
  *   is no rocket
+ * @property {readonly FrameBeast[]} [beasts] the sea's creatures near the boat
+ * @property {FrameKraken | null} [kraken]
+ */
+
+/**
+ * A creature: kind (see KINDS in shaders/creatures.js), centre, heading (as the boat's), pitch
+ * (nose up positive), size, and anim (the phase of its fins, a gull's wing angle, or the age of a
+ * splash or a spout, 0..1).
+ * @typedef {{ kind: string, x: number, y: number, z: number, heading: number, pitch: number,
+ *   size: number, anim: number }} FrameBeast
+ * @typedef {{ x: number, z: number, heading: number, rise: number, reach: number }} FrameKraken
  */
 
 /**
@@ -132,6 +144,8 @@ const UNIFORMS = /** @type {const} */ ([
   'uWave',
   'uPennant',
   'uRocket',
+  'uBeast',
+  'uKraken',
   'uSea',
   'uGust',
   'uPhase',
@@ -372,6 +386,8 @@ export function createRenderer(canvas, terrain) {
   }
 
   const found = new Float32Array(PORTS);
+  const beasts = new Float32Array(BEASTS * 8);
+  const kraken = new Float32Array(8);
   /** Phases of the wave trains under the boat, so the swell stays put on the water as she moves. */
   const wave = new Float32Array(RUNS + 3);
   /** The way each train runs, world x and z. */
@@ -472,6 +488,21 @@ export function createRenderer(canvas, terrain) {
       const px = felt > 1e-3 ? (ax * cos - az * sin) / felt : 0;
       const pz = felt > 1e-3 ? (ax * sin + az * cos) / felt : -1;
       for (let i = 0; i < PORTS; i++) found[i] = frame.found[i] ? 1 : 0;
+      const herd = frame.beasts ?? [];
+      for (let i = 0; i < BEASTS; i++) {
+        const beast = herd[i];
+        const kind = beast ? KINDS.indexOf(/** @type {any} */ (beast.kind)) : -1;
+        if (beast && kind >= 0) {
+          beasts.set([beast.x, beast.y, beast.z, beast.heading], i * 8);
+          beasts.set([kind, beast.size, beast.pitch, beast.anim], i * 8 + 4);
+        } else beasts.set([0, -100, 0, 0, -1, 1, 0, 0], i * 8);
+      }
+      const monster = frame.kraken;
+      kraken.set(
+        monster
+          ? [monster.x, monster.z, monster.heading, monster.rise, monster.reach, 0, 0, 0]
+          : [0, 0, 0, 0, 0, 0, 0, 0],
+      );
 
       const { at } = sea;
       const { cave, volcano } = terrain;
@@ -522,6 +553,8 @@ export function createRenderer(canvas, terrain) {
       );
       gl.uniform2f(at.uPennant, px, pz);
       gl.uniform1f(at.uRocket, frame.rocket ? 1 : 0);
+      gl.uniform4fv(at.uBeast, beasts);
+      gl.uniform4fv(at.uKraken, kraken);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     },
 

@@ -100,7 +100,7 @@ float seaFoam(vec2 w, float h){
   vec2 u = leeAt(w);
   float n = 0.6*noise(u*1.9) + 0.4*noise(u*5.3 + 2.0), fine = noise(u*13.0);
   float top = smoothstep(0.25, 0.9, h/(0.2*(0.3 + 1.5*uSea)));
-  float cap = top*smoothstep(1.72 - 0.6*wild, 1.92 - 0.6*wild, n + 0.75*top);
+  float cap = top*smoothstep(1.62 - 0.6*wild, 1.82 - 0.6*wild, n + 0.75*top);
   float streak = smoothstep(1.27 - 0.3*wild, 1.47 - 0.3*wild, noise(u*vec2(0.3, 3.1)) + 0.45*n)*0.45;
   return clamp(max(cap, streak*smoothstep(0.6, 1.1, wild))*(0.35 + 1.1*fine), 0.0, 1.0);
 }

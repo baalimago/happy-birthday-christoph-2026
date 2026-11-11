@@ -1,4 +1,5 @@
 import { START } from '#game/chart-data.js';
+import { createFauna } from '#game/fauna.js';
 import { bearingTo, damageFor, newBoat, sail, windAt } from '#game/sailing.js';
 import { getTerrain, heightAt, insideCave, isWater } from '#game/terrain.js';
 import { takeHelm } from '#input/helm.js';
@@ -31,6 +32,9 @@ const MOOR_EVERY = 4;
 const HOLD = 5;
 /** A lighthouse counts as found from this far off. */
 const ARRIVE = 30;
+/** While the kraken hunts, the camera stands off on the bow, wide, to show the boat and it. */
+const KRAKEN_DISTANCE = 17;
+const KRAKEN_PITCH = 0.3;
 
 /** @param {number} angle @returns {number} the same bearing, 0..2PI */
 const compass = (angle) => ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
@@ -122,6 +126,8 @@ export class VoyageSea extends HTMLElement {
   #shiftY = -0.1;
   #end = 0;
   #still = false;
+  #fauna = createFauna((Math.random() * 2 ** 31) | 0);
+  #menace = 0;
 
   get live() {
     return this.hasAttribute('live');
@@ -177,6 +183,13 @@ export class VoyageSea extends HTMLElement {
       { signal },
     );
     addEventListener('pagehide', () => this.#moor(), { signal });
+    // ?kraken raises it a few seconds into the passage, to see it without waiting an hour.
+    if (new URLSearchParams(location.search).has('kraken')) {
+      setTimeout(() => {
+        const water = (/** @type {number} */ x, /** @type {number} */ z) => isWater(terrain, x, z);
+        if (this.#fauna.summonKraken(this.#boat, water)) passage.sight('kraken-rise');
+      }, 6000);
+    }
     this.#run();
   }
 
@@ -281,20 +294,34 @@ export class VoyageSea extends HTMLElement {
     const step = hoveTo ? 0 : dt;
     this.#watch += step;
     this.#sail(step, wind, terrain, dt);
+    this.#live(step, terrain);
     const boat = this.#boat;
 
     // Let the camera drift back to rest once the captain lets go of it, and close up in the cave.
     const under = insideCave(terrain.cave, boat.x, boat.z) > -3;
+    // With the kraken up, the camera swings out ahead and to one side, looking back past the
+    // boat at it.
+    const monster = this.#fauna.kraken;
+    const fear = this.#menace > 0.05 && monster ? 1 : 0;
+    let restYaw = REST_YAW;
+    if (fear && monster) {
+      const ex = monster.x - boat.x;
+      const ez = monster.z - boat.z;
+      const sin = Math.sin(boat.heading);
+      const cos = Math.cos(boat.heading);
+      const bearing = Math.atan2(ex * cos - ez * sin, ex * sin + ez * cos);
+      restYaw = bearing + Math.PI - 1.05;
+    }
     if (!this.hasAttribute('looking')) {
-      const ease = Math.min(1, dt * 0.8);
-      this.#yaw +=
-        Math.atan2(Math.sin(REST_YAW - this.#yaw), Math.cos(REST_YAW - this.#yaw)) * ease;
-      this.#pitch += ((under ? CAVE_PITCH : REST_PITCH) - this.#pitch) * ease;
+      const ease = Math.min(1, dt * (fear ? 1.2 : 0.8));
+      this.#yaw += Math.atan2(Math.sin(restYaw - this.#yaw), Math.cos(restYaw - this.#yaw)) * ease;
+      const pitch = under ? CAVE_PITCH : fear ? KRAKEN_PITCH : REST_PITCH;
+      this.#pitch += (pitch - this.#pitch) * ease;
     } else if (under) {
       this.#pitch = Math.min(this.#pitch, 0.3);
     }
-    this.#distance +=
-      ((under ? CAVE_DISTANCE : REST_DISTANCE) - this.#distance) * Math.min(1, dt * 2);
+    const distance = under ? CAVE_DISTANCE : fear ? KRAKEN_DISTANCE : REST_DISTANCE;
+    this.#distance += (distance - this.#distance) * Math.min(1, dt * (fear ? 0.7 : 2));
 
     // Keep the boat clear of an open card: beside it on wide screens, above it on narrow ones.
     const wide = canvas.clientWidth >= 900;
@@ -323,6 +350,8 @@ export class VoyageSea extends HTMLElement {
       sun: SUN,
       wind,
       rocket: this.#helm.rocket ? 1 : 0,
+      beasts: this.#fauna.beasts,
+      kraken: this.#fauna.kraken,
     };
     renderer.draw(frame);
   }
@@ -382,7 +411,24 @@ export class VoyageSea extends HTMLElement {
         // Shoaling water means land is near: the sea floor runs down to -5 about 40 units out.
         land: Math.min(1, Math.max(0, (heightAt(terrain, boat.x, boat.z) + 5) / 5)),
         cave: insideCave(terrain.cave, boat.x, boat.z) > 0,
+        kraken: this.#menace,
       });
+    }
+  }
+
+  /**
+   * The sea's life for one step: creatures come and go, sightings go to the passage store, and a
+   * kraken that catches the boat stoves in some of her hull.
+   * @param {number} dt @param {Terrain} terrain
+   */
+  #live(dt, terrain) {
+    const water = (/** @type {number} */ x, /** @type {number} */ z) => isWater(terrain, x, z);
+    const { sightings, strike } = this.#fauna.step(this.#boat, dt, water);
+    for (const kind of sightings) passage.sight(kind);
+    this.#menace = this.#fauna.menace(this.#boat);
+    if (strike > 0) {
+      voyage.damage(strike);
+      if (voyage.state.hull <= 0) this.#wreck();
     }
   }
 
